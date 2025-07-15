@@ -442,7 +442,10 @@ async def logout(current_user: dict = Depends(get_current_user)):
 
 @api_router.get("/me")
 async def get_current_user_info(current_user: dict = Depends(get_current_user)):
-    return {k: v for k, v in current_user.items() if k != "password_hash"}
+    user_data = {k: v for k, v in current_user.items() if k != "password_hash"}
+    if "_id" in user_data:
+        user_data["_id"] = str(user_data["_id"])
+    return user_data
 
 # Initialize data endpoint
 @api_router.post("/init-data")
