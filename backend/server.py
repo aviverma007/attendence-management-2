@@ -322,7 +322,7 @@ async def get_attendance_stats():
 
 @api_router.get("/attendance/team-stats")
 async def get_team_attendance_stats():
-    today = date.today()
+    today = date.today().isoformat()
     
     # Get all teams
     teams = await db.teams.find({"is_active": True}).to_list(1000)
