@@ -223,7 +223,19 @@ async def init_sample_data():
             total_hours=8.0 if status == "present" else (4.0 if status == "half_day" else 0.0)
         )
         
-        await db.attendance.insert_one(attendance.dict())
+        # Convert to dict and handle date serialization
+        attendance_dict = attendance.dict()
+        attendance_dict["date"] = attendance_dict["date"].isoformat()
+        if attendance_dict["check_in_time"]:
+            attendance_dict["check_in_time"] = attendance_dict["check_in_time"].isoformat()
+        if attendance_dict["check_out_time"]:
+            attendance_dict["check_out_time"] = attendance_dict["check_out_time"].isoformat()
+        if attendance_dict["break_start"]:
+            attendance_dict["break_start"] = attendance_dict["break_start"].isoformat()
+        if attendance_dict["break_end"]:
+            attendance_dict["break_end"] = attendance_dict["break_end"].isoformat()
+        
+        await db.attendance.insert_one(attendance_dict)
 
 # API Routes
 @api_router.get("/")
