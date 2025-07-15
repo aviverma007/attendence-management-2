@@ -676,6 +676,9 @@ async def get_sites(current_user: dict = Depends(get_current_user)):
         sites = await db.sites.find({"is_active": True}).to_list(1000)
     else:
         sites = await db.sites.find({"name": current_user["site"], "is_active": True}).to_list(1000)
+    
+    # Convert ObjectId to string
+    sites = convert_object_id(sites)
     return [Site(**site) for site in sites]
 
 @api_router.get("/teams", response_model=List[Team])
