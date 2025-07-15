@@ -475,6 +475,8 @@ async def get_employees(current_user: dict = Depends(get_current_user)):
     else:
         employees = await db.employees.find({"employee_id": current_user["username"], "is_active": True}).to_list(1000)
     
+    # Convert ObjectId to string
+    employees = convert_object_id(employees)
     return [Employee(**emp) for emp in employees]
 
 @api_router.post("/employees", response_model=Employee)
