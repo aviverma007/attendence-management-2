@@ -498,6 +498,13 @@ class AttendanceSystemTester:
         print("=" * 50)
         self.test_attendance_stats()
         self.test_team_attendance_stats()
+        self.test_site_attendance_stats()
+        
+        print("\n" + "=" * 50)
+        print("TESTING USER MANAGEMENT")
+        print("=" * 50)
+        self.test_get_current_user_info()
+        self.test_get_users()
         
         print("\n" + "=" * 50)
         print("TESTING LEAVE MANAGEMENT")
