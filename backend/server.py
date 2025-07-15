@@ -364,8 +364,18 @@ async def init_sample_data():
     ]
     
     for emp in employees:
+        # Convert hire_date string to date object for Employee model, then back to string for MongoDB
+        if isinstance(emp["hire_date"], str):
+            emp["hire_date"] = datetime.strptime(emp["hire_date"], "%Y-%m-%d").date()
+        
         emp_obj = Employee(**emp)
-        await db.employees.insert_one(emp_obj.dict())
+        
+        # Convert to dict and handle date serialization for MongoDB
+        emp_dict = emp_obj.dict()
+        if isinstance(emp_dict.get("hire_date"), date):
+            emp_dict["hire_date"] = emp_dict["hire_date"].isoformat()
+        
+        await db.employees.insert_one(emp_dict)
     
     # Generate sample attendance for today
     today = date.today()
