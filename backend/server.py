@@ -1,4 +1,5 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -6,11 +7,14 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, time, date
+from datetime import datetime, time, date, timedelta
 import random
 import json
+import jwt
+import bcrypt
+from enum import Enum
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -20,13 +24,57 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
+# JWT Configuration
+SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'smartworld-secret-key-2024')
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
+
+# Security
+security = HTTPBearer()
+
 # Create the main app without a prefix
 app = FastAPI()
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# User Roles
+class UserRole(str, Enum):
+    ADMIN = "admin"
+    PRESIDENT = "president"
+    HEAD = "head"
+    USER = "user"
+
 # Define Models
+class User(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    username: str
+    email: str
+    password_hash: str
+    role: UserRole
+    site: Optional[str] = None
+    team: Optional[str] = None
+    is_active: bool = True
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    permissions: Dict[str, bool] = Field(default_factory=dict)
+
+class UserCreate(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: UserRole
+    site: Optional[str] = None
+    team: Optional[str] = None
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+    user: Dict[str, Any]
+
 class Employee(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     employee_id: str
@@ -120,8 +168,127 @@ class Team(BaseModel):
     department: str
     is_active: bool = True
 
-# Initialize sample data
+# Authentication Functions
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            raise credentials_exception
+    except jwt.PyJWTError:
+        raise credentials_exception
+    
+    user = await db.users.find_one({"username": username})
+    if user is None:
+        raise credentials_exception
+    return user
+
+def require_role(required_roles: List[UserRole]):
+    def role_checker(current_user: dict = Depends(get_current_user)):
+        if current_user["role"] not in [role.value for role in required_roles]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions"
+            )
+        return current_user
+    return role_checker
+
+# Initialize default admin user and sample data
 async def init_sample_data():
+    # Check if admin user exists
+    admin_user = await db.users.find_one({"username": "admin"})
+    if not admin_user:
+        # Create default admin user
+        admin_data = {
+            "username": "admin",
+            "email": "admin@smartworld.com",
+            "password_hash": hash_password("admin123"),
+            "role": UserRole.ADMIN.value,
+            "site": "Smartworld HQ",
+            "team": "Management",
+            "is_active": True,
+            "created_at": datetime.utcnow(),
+            "permissions": {
+                "manage_users": True,
+                "manage_employees": True,
+                "manage_attendance": True,
+                "view_all_sites": True,
+                "manage_leaves": True,
+                "view_reports": True
+            }
+        }
+        await db.users.insert_one(admin_data)
+        
+        # Create sample users for different roles
+        sample_users = [
+            {
+                "username": "president",
+                "email": "president@smartworld.com",
+                "password_hash": hash_password("president123"),
+                "role": UserRole.PRESIDENT.value,
+                "site": "Smartworld HQ",
+                "team": "Management",
+                "permissions": {
+                    "view_all_sites": True,
+                    "manage_employees": True,
+                    "view_reports": True,
+                    "manage_leaves": True
+                }
+            },
+            {
+                "username": "head1",
+                "email": "head1@smartworld.com",
+                "password_hash": hash_password("head123"),
+                "role": UserRole.HEAD.value,
+                "site": "Smartworld HQ",
+                "team": "Frontend Development",
+                "permissions": {
+                    "view_team_data": True,
+                    "manage_team_attendance": True,
+                    "approve_leaves": True
+                }
+            },
+            {
+                "username": "user1",
+                "email": "user1@smartworld.com",
+                "password_hash": hash_password("user123"),
+                "role": UserRole.USER.value,
+                "site": "Smartworld HQ",
+                "team": "Frontend Development",
+                "permissions": {
+                    "view_own_data": True,
+                    "apply_leave": True
+                }
+            }
+        ]
+        
+        for user_data in sample_users:
+            user_data["id"] = str(uuid.uuid4())
+            user_data["is_active"] = True
+            user_data["created_at"] = datetime.utcnow()
+            await db.users.insert_one(user_data)
+    
     # Check if data already exists
     existing_sites = await db.sites.count_documents({})
     if existing_sites > 0:
@@ -242,6 +409,39 @@ async def init_sample_data():
 async def root():
     return {"message": "Smartworld Developers Attendance System API"}
 
+# Authentication endpoints
+@api_router.post("/login", response_model=Token)
+async def login(user_credentials: UserLogin):
+    user = await db.users.find_one({"username": user_credentials.username})
+    if not user or not verify_password(user_credentials.password, user["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user["username"]}, expires_delta=access_token_expires
+    )
+    
+    # Remove password hash from user data
+    user_data = {k: v for k, v in user.items() if k != "password_hash"}
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": user_data
+    }
+
+@api_router.post("/logout")
+async def logout(current_user: dict = Depends(get_current_user)):
+    return {"message": "Successfully logged out"}
+
+@api_router.get("/me")
+async def get_current_user_info(current_user: dict = Depends(get_current_user)):
+    return {k: v for k, v in current_user.items() if k != "password_hash"}
+
 # Initialize data endpoint
 @api_router.post("/init-data")
 async def initialize_data():
@@ -250,19 +450,28 @@ async def initialize_data():
 
 # Employee routes
 @api_router.get("/employees", response_model=List[Employee])
-async def get_employees():
-    employees = await db.employees.find({"is_active": True}).to_list(1000)
+async def get_employees(current_user: dict = Depends(get_current_user)):
+    # Role-based filtering
+    if current_user["role"] == UserRole.ADMIN.value:
+        employees = await db.employees.find({"is_active": True}).to_list(1000)
+    elif current_user["role"] == UserRole.PRESIDENT.value:
+        employees = await db.employees.find({"is_active": True}).to_list(1000)
+    elif current_user["role"] == UserRole.HEAD.value:
+        employees = await db.employees.find({"team": current_user["team"], "is_active": True}).to_list(1000)
+    else:
+        employees = await db.employees.find({"employee_id": current_user["username"], "is_active": True}).to_list(1000)
+    
     return [Employee(**emp) for emp in employees]
 
 @api_router.post("/employees", response_model=Employee)
-async def create_employee(employee: EmployeeCreate):
+async def create_employee(employee: EmployeeCreate, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.PRESIDENT, UserRole.HEAD]))):
     employee_dict = employee.dict()
     employee_obj = Employee(**employee_dict)
     await db.employees.insert_one(employee_obj.dict())
     return employee_obj
 
 @api_router.put("/employees/{employee_id}")
-async def update_employee(employee_id: str, employee_update: EmployeeUpdate):
+async def update_employee(employee_id: str, employee_update: EmployeeUpdate, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.PRESIDENT, UserRole.HEAD]))):
     update_dict = {k: v for k, v in employee_update.dict().items() if v is not None}
     if not update_dict:
         raise HTTPException(status_code=400, detail="No fields to update")
@@ -278,7 +487,7 @@ async def update_employee(employee_id: str, employee_update: EmployeeUpdate):
     return {"message": "Employee updated successfully"}
 
 @api_router.delete("/employees/{employee_id}")
-async def delete_employee(employee_id: str):
+async def delete_employee(employee_id: str, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.PRESIDENT]))):
     result = await db.employees.update_one(
         {"employee_id": employee_id},
         {"$set": {"is_active": False}}
@@ -291,20 +500,38 @@ async def delete_employee(employee_id: str):
 
 # Attendance routes
 @api_router.get("/attendance/today")
-async def get_today_attendance():
-    today = date.today()
-    attendance = await db.attendance.find({"date": today}).to_list(1000)
+async def get_today_attendance(current_user: dict = Depends(get_current_user)):
+    today = date.today().isoformat()
+    
+    # Role-based filtering
+    if current_user["role"] in [UserRole.ADMIN.value, UserRole.PRESIDENT.value]:
+        attendance = await db.attendance.find({"date": today}).to_list(1000)
+    elif current_user["role"] == UserRole.HEAD.value:
+        # Get team members
+        team_employees = await db.employees.find({"team": current_user["team"]}).to_list(1000)
+        employee_ids = [emp["employee_id"] for emp in team_employees]
+        attendance = await db.attendance.find({"date": today, "employee_id": {"$in": employee_ids}}).to_list(1000)
+    else:
+        attendance = await db.attendance.find({"date": today, "employee_id": current_user["username"]}).to_list(1000)
+    
     return [Attendance(**att) for att in attendance]
 
 @api_router.get("/attendance/stats")
-async def get_attendance_stats():
+async def get_attendance_stats(current_user: dict = Depends(get_current_user)):
     today = date.today().isoformat()
     
-    # Get all employees
-    total_employees = await db.employees.count_documents({"is_active": True})
-    
-    # Get today's attendance
-    today_attendance = await db.attendance.find({"date": today}).to_list(1000)
+    # Role-based filtering
+    if current_user["role"] in [UserRole.ADMIN.value, UserRole.PRESIDENT.value]:
+        total_employees = await db.employees.count_documents({"is_active": True})
+        today_attendance = await db.attendance.find({"date": today}).to_list(1000)
+    elif current_user["role"] == UserRole.HEAD.value:
+        total_employees = await db.employees.count_documents({"team": current_user["team"], "is_active": True})
+        team_employees = await db.employees.find({"team": current_user["team"]}).to_list(1000)
+        employee_ids = [emp["employee_id"] for emp in team_employees]
+        today_attendance = await db.attendance.find({"date": today, "employee_id": {"$in": employee_ids}}).to_list(1000)
+    else:
+        total_employees = 1
+        today_attendance = await db.attendance.find({"date": today, "employee_id": current_user["username"]}).to_list(1000)
     
     present_count = len([att for att in today_attendance if att["status"] == "present"])
     late_count = len([att for att in today_attendance if att["status"] == "late"])
@@ -321,11 +548,17 @@ async def get_attendance_stats():
     }
 
 @api_router.get("/attendance/team-stats")
-async def get_team_attendance_stats():
+async def get_team_attendance_stats(current_user: dict = Depends(get_current_user)):
     today = date.today().isoformat()
     
-    # Get all teams
-    teams = await db.teams.find({"is_active": True}).to_list(1000)
+    # Role-based filtering
+    if current_user["role"] in [UserRole.ADMIN.value, UserRole.PRESIDENT.value]:
+        teams = await db.teams.find({"is_active": True}).to_list(1000)
+    elif current_user["role"] == UserRole.HEAD.value:
+        teams = await db.teams.find({"name": current_user["team"], "is_active": True}).to_list(1000)
+    else:
+        teams = await db.teams.find({"name": current_user["team"], "is_active": True}).to_list(1000)
+    
     team_stats = []
     
     for team in teams:
@@ -374,20 +607,130 @@ async def get_team_attendance_stats():
     
     return team_stats
 
+@api_router.get("/attendance/site-stats")
+async def get_site_attendance_stats(current_user: dict = Depends(get_current_user)):
+    today = date.today().isoformat()
+    
+    # Role-based filtering
+    if current_user["role"] in [UserRole.ADMIN.value, UserRole.PRESIDENT.value]:
+        sites = await db.sites.find({"is_active": True}).to_list(1000)
+    else:
+        sites = await db.sites.find({"name": current_user["site"], "is_active": True}).to_list(1000)
+    
+    site_stats = []
+    
+    for site in sites:
+        # Get employees in this site
+        site_employees = await db.employees.find({"site": site["name"], "is_active": True}).to_list(1000)
+        total_members = len(site_employees)
+        
+        if total_members == 0:
+            continue
+        
+        # Get attendance for site members today
+        employee_ids = [emp["employee_id"] for emp in site_employees]
+        site_attendance = await db.attendance.find({
+            "employee_id": {"$in": employee_ids},
+            "date": today
+        }).to_list(1000)
+        
+        present_count = len([att for att in site_attendance if att["status"] == "present"])
+        late_count = len([att for att in site_attendance if att["status"] == "late"])
+        absent_count = len([att for att in site_attendance if att["status"] == "absent"])
+        half_day_count = len([att for att in site_attendance if att["status"] == "half_day"])
+        
+        site_stats.append({
+            "site": site["name"],
+            "location": site["location"],
+            "manager": site["manager"],
+            "total_members": total_members,
+            "present_count": present_count,
+            "absent_count": absent_count,
+            "late_count": late_count,
+            "half_day_count": half_day_count,
+            "attendance_percentage": round((present_count + late_count + half_day_count) / total_members * 100, 2)
+        })
+    
+    return site_stats
+
 # Sites and Teams routes
 @api_router.get("/sites", response_model=List[Site])
-async def get_sites():
-    sites = await db.sites.find({"is_active": True}).to_list(1000)
+async def get_sites(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] in [UserRole.ADMIN.value, UserRole.PRESIDENT.value]:
+        sites = await db.sites.find({"is_active": True}).to_list(1000)
+    else:
+        sites = await db.sites.find({"name": current_user["site"], "is_active": True}).to_list(1000)
     return [Site(**site) for site in sites]
 
 @api_router.get("/teams", response_model=List[Team])
-async def get_teams():
-    teams = await db.teams.find({"is_active": True}).to_list(1000)
+async def get_teams(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] in [UserRole.ADMIN.value, UserRole.PRESIDENT.value]:
+        teams = await db.teams.find({"is_active": True}).to_list(1000)
+    else:
+        teams = await db.teams.find({"name": current_user["team"], "is_active": True}).to_list(1000)
     return [Team(**team) for team in teams]
+
+# User management routes (Admin only)
+@api_router.get("/users")
+async def get_users(current_user: dict = Depends(require_role([UserRole.ADMIN]))):
+    users = await db.users.find({"is_active": True}).to_list(1000)
+    return [{k: v for k, v in user.items() if k != "password_hash"} for user in users]
+
+@api_router.post("/users")
+async def create_user(user_data: UserCreate, current_user: dict = Depends(require_role([UserRole.ADMIN]))):
+    # Check if user already exists
+    existing_user = await db.users.find_one({"username": user_data.username})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    # Hash password
+    hashed_password = hash_password(user_data.password)
+    
+    # Create user
+    user_dict = user_data.dict()
+    user_dict["password_hash"] = hashed_password
+    del user_dict["password"]
+    user_dict["id"] = str(uuid.uuid4())
+    user_dict["is_active"] = True
+    user_dict["created_at"] = datetime.utcnow()
+    
+    # Set default permissions based on role
+    if user_data.role == UserRole.ADMIN:
+        user_dict["permissions"] = {
+            "manage_users": True,
+            "manage_employees": True,
+            "manage_attendance": True,
+            "view_all_sites": True,
+            "manage_leaves": True,
+            "view_reports": True
+        }
+    elif user_data.role == UserRole.PRESIDENT:
+        user_dict["permissions"] = {
+            "view_all_sites": True,
+            "manage_employees": True,
+            "view_reports": True,
+            "manage_leaves": True
+        }
+    elif user_data.role == UserRole.HEAD:
+        user_dict["permissions"] = {
+            "view_team_data": True,
+            "manage_team_attendance": True,
+            "approve_leaves": True
+        }
+    else:
+        user_dict["permissions"] = {
+            "view_own_data": True,
+            "apply_leave": True
+        }
+    
+    await db.users.insert_one(user_dict)
+    
+    # Remove password hash from response
+    return {k: v for k, v in user_dict.items() if k != "password_hash"}
 
 # Leave management routes
 @api_router.post("/leaves", response_model=LeaveRequest)
-async def create_leave_request(leave_request: LeaveRequestCreate):
+async def create_leave_request(leave_request: LeaveRequestCreate, current_user: dict = Depends(get_current_user)):
     # Get employee details
     employee = await db.employees.find_one({"employee_id": leave_request.employee_id})
     if not employee:
@@ -402,8 +745,17 @@ async def create_leave_request(leave_request: LeaveRequestCreate):
     return leave_obj
 
 @api_router.get("/leaves")
-async def get_leave_requests():
-    leaves = await db.leaves.find().to_list(1000)
+async def get_leave_requests(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] in [UserRole.ADMIN.value, UserRole.PRESIDENT.value]:
+        leaves = await db.leaves.find().to_list(1000)
+    elif current_user["role"] == UserRole.HEAD.value:
+        # Get team members
+        team_employees = await db.employees.find({"team": current_user["team"]}).to_list(1000)
+        employee_ids = [emp["employee_id"] for emp in team_employees]
+        leaves = await db.leaves.find({"employee_id": {"$in": employee_ids}}).to_list(1000)
+    else:
+        leaves = await db.leaves.find({"employee_id": current_user["username"]}).to_list(1000)
+    
     return [LeaveRequest(**leave) for leave in leaves]
 
 # Include the router in the main app
