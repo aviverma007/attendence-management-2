@@ -730,8 +730,9 @@ async def create_user(user_data: UserCreate, current_user: dict = Depends(requir
     
     await db.users.insert_one(user_dict)
     
-    # Remove password hash from response
-    return {k: v for k, v in user_dict.items() if k != "password_hash"}
+    # Remove password hash and convert ObjectId to string for response
+    response_data = {k: str(v) if k == "_id" else v for k, v in user_dict.items() if k != "password_hash"}
+    return response_data
 
 # Leave management routes
 @api_router.post("/leaves", response_model=LeaveRequest)
