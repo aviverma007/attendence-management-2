@@ -17,6 +17,7 @@ class AttendanceSystemTester:
         self.base_url = BACKEND_URL
         self.session = requests.Session()
         self.test_results = []
+        self.auth_token = None
         
     def log_test(self, test_name, success, message, details=None):
         """Log test results"""
