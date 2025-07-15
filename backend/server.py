@@ -687,6 +687,9 @@ async def get_teams(current_user: dict = Depends(get_current_user)):
         teams = await db.teams.find({"is_active": True}).to_list(1000)
     else:
         teams = await db.teams.find({"name": current_user["team"], "is_active": True}).to_list(1000)
+    
+    # Convert ObjectId to string
+    teams = convert_object_id(teams)
     return [Team(**team) for team in teams]
 
 # User management routes (Admin only)
