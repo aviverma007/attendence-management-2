@@ -338,6 +338,92 @@ class AttendanceSystemTester:
             self.log_test("Create Leave Request", False, f"Request error: {str(e)}")
             return False
     
+    def test_get_users(self):
+        """Test GET /api/users - Get all users (Admin only)"""
+        try:
+            response = self.session.get(f"{self.base_url}/users")
+            if response.status_code == 200:
+                users = response.json()
+                if isinstance(users, list) and len(users) >= 4:
+                    # Check if users have required fields
+                    sample_user = users[0]
+                    required_fields = ["username", "email", "role", "is_active"]
+                    if all(field in sample_user for field in required_fields):
+                        admin_user = next((u for u in users if u["username"] == "admin"), None)
+                        if admin_user and admin_user["role"] == "admin":
+                            self.log_test("Get Users", True, f"Retrieved {len(users)} users successfully", f"Admin user found with role: {admin_user['role']}")
+                            return True
+                        else:
+                            self.log_test("Get Users", False, "Admin user not found or incorrect role", users[:2])
+                            return False
+                    else:
+                        self.log_test("Get Users", False, "User data missing required fields", sample_user)
+                        return False
+                else:
+                    self.log_test("Get Users", False, f"Expected at least 4 users, got {len(users) if isinstance(users, list) else 'invalid format'}")
+                    return False
+            else:
+                self.log_test("Get Users", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Get Users", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_site_attendance_stats(self):
+        """Test GET /api/attendance/site-stats - Site-wise attendance statistics"""
+        try:
+            response = self.session.get(f"{self.base_url}/attendance/site-stats")
+            if response.status_code == 200:
+                site_stats = response.json()
+                if isinstance(site_stats, list) and len(site_stats) > 0:
+                    sample_site = site_stats[0]
+                    required_fields = ["site", "location", "manager", "total_members", "present_count", "absent_count", "late_count", "attendance_percentage"]
+                    
+                    if all(field in sample_site for field in required_fields):
+                        site_name = sample_site["site"]
+                        total_members = sample_site["total_members"]
+                        present_count = sample_site["present_count"]
+                        percentage = sample_site["attendance_percentage"]
+                        
+                        self.log_test("Site Attendance Stats", True, f"Retrieved stats for {len(site_stats)} sites", f"Sample: {site_name} - {present_count}/{total_members} present ({percentage}%)")
+                        return True
+                    else:
+                        self.log_test("Site Attendance Stats", False, "Missing required fields in site stats", sample_site)
+                        return False
+                else:
+                    self.log_test("Site Attendance Stats", False, f"Expected site stats array, got {type(site_stats)}", site_stats)
+                    return False
+            else:
+                self.log_test("Site Attendance Stats", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Site Attendance Stats", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_get_current_user_info(self):
+        """Test GET /api/me - Get current user info"""
+        try:
+            response = self.session.get(f"{self.base_url}/me")
+            if response.status_code == 200:
+                user_info = response.json()
+                required_fields = ["username", "email", "role", "is_active"]
+                if all(field in user_info for field in required_fields):
+                    if user_info["username"] == "admin" and user_info["role"] == "admin":
+                        self.log_test("Get Current User Info", True, f"Retrieved user info for {user_info['username']}", f"Role: {user_info['role']}, Active: {user_info['is_active']}")
+                        return True
+                    else:
+                        self.log_test("Get Current User Info", False, "User info doesn't match expected admin user", user_info)
+                        return False
+                else:
+                    self.log_test("Get Current User Info", False, "User info missing required fields", user_info)
+                    return False
+            else:
+                self.log_test("Get Current User Info", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Get Current User Info", False, f"Request error: {str(e)}")
+            return False
+
     def test_get_leave_requests(self):
         """Test GET /api/leaves - Get all leave requests"""
         try:
