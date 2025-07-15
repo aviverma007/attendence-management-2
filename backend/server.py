@@ -298,7 +298,7 @@ async def get_today_attendance():
 
 @api_router.get("/attendance/stats")
 async def get_attendance_stats():
-    today = date.today()
+    today = date.today().isoformat()
     
     # Get all employees
     total_employees = await db.employees.count_documents({"is_active": True})
