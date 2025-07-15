@@ -15,7 +15,7 @@ import {
   UserCircleIcon, 
   SunIcon, 
   MoonIcon, 
-  LogoutIcon, 
+  ArrowLeftOnRectangleIcon, 
   UsersIcon, 
   ChartBarIcon,
   CogIcon,
