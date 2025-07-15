@@ -373,9 +373,13 @@ class AttendanceSystemTester:
         print("SMARTWORLD DEVELOPERS ATTENDANCE SYSTEM - BACKEND API TESTING")
         print("=" * 80)
         
-        # Test API connectivity first
+        # Test API connectivity and authentication first
         if not self.test_api_root():
             print("\n❌ CRITICAL: API is not accessible. Stopping tests.")
+            return False
+        
+        if not self.test_login():
+            print("\n❌ CRITICAL: Authentication failed. Stopping tests.")
             return False
         
         print("\n" + "=" * 50)
