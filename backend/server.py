@@ -16,6 +16,15 @@ import jwt
 import bcrypt
 from enum import Enum
 
+def convert_object_id(data):
+    """Convert ObjectId to string in MongoDB documents"""
+    if isinstance(data, list):
+        return [convert_object_id(item) for item in data]
+    elif isinstance(data, dict):
+        return {k: str(v) if k == "_id" else convert_object_id(v) if isinstance(v, dict) else v for k, v in data.items()}
+    else:
+        return data
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
