@@ -10,7 +10,7 @@ from datetime import date, datetime
 import sys
 
 # Backend URL from environment
-BACKEND_URL = "https://9323efe3-9b96-43aa-9d37-e218210231e3.preview.emergentagent.com/api"
+BACKEND_URL = "https://0e8cfd2b-3354-4f01-bec6-b67c2e027f54.preview.emergentagent.com/api"
 
 class AttendanceSystemTester:
     def __init__(self):
