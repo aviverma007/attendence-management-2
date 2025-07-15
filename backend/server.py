@@ -482,8 +482,19 @@ async def get_employees(current_user: dict = Depends(get_current_user)):
 @api_router.post("/employees", response_model=Employee)
 async def create_employee(employee: EmployeeCreate, current_user: dict = Depends(require_role([UserRole.ADMIN, UserRole.PRESIDENT, UserRole.HEAD]))):
     employee_dict = employee.dict()
+    
+    # Handle date serialization
+    if isinstance(employee_dict.get("hire_date"), date):
+        employee_dict["hire_date"] = employee_dict["hire_date"].isoformat()
+    
     employee_obj = Employee(**employee_dict)
-    await db.employees.insert_one(employee_obj.dict())
+    
+    # Convert to dict and handle date serialization for MongoDB
+    employee_mongo_dict = employee_obj.dict()
+    if isinstance(employee_mongo_dict.get("hire_date"), date):
+        employee_mongo_dict["hire_date"] = employee_mongo_dict["hire_date"].isoformat()
+    
+    await db.employees.insert_one(employee_mongo_dict)
     return employee_obj
 
 @api_router.put("/employees/{employee_id}")
