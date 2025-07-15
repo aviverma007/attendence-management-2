@@ -785,7 +785,19 @@ async def create_leave_request(leave_request: LeaveRequestCreate, current_user: 
     leave_dict["status"] = "pending"
     
     leave_obj = LeaveRequest(**leave_dict)
-    await db.leaves.insert_one(leave_obj.dict())
+    
+    # Convert to dict and handle date serialization for MongoDB
+    leave_mongo_dict = leave_obj.dict()
+    if isinstance(leave_mongo_dict.get("start_date"), date):
+        leave_mongo_dict["start_date"] = leave_mongo_dict["start_date"].isoformat()
+    if isinstance(leave_mongo_dict.get("end_date"), date):
+        leave_mongo_dict["end_date"] = leave_mongo_dict["end_date"].isoformat()
+    if isinstance(leave_mongo_dict.get("applied_at"), datetime):
+        leave_mongo_dict["applied_at"] = leave_mongo_dict["applied_at"].isoformat()
+    if isinstance(leave_mongo_dict.get("approved_at"), datetime):
+        leave_mongo_dict["approved_at"] = leave_mongo_dict["approved_at"].isoformat()
+    
+    await db.leaves.insert_one(leave_mongo_dict)
     return leave_obj
 
 @api_router.get("/leaves")
