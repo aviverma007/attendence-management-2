@@ -33,6 +33,34 @@ class AttendanceSystemTester:
             "details": details
         })
     
+    def test_login(self):
+        """Test POST /api/login - Authentication"""
+        try:
+            login_data = {
+                "username": "admin",
+                "password": "admin123"
+            }
+            
+            response = self.session.post(f"{self.base_url}/login", json=login_data)
+            if response.status_code == 200:
+                data = response.json()
+                if "access_token" in data and "user" in data:
+                    self.auth_token = data["access_token"]
+                    # Set authorization header for future requests
+                    self.session.headers.update({"Authorization": f"Bearer {self.auth_token}"})
+                    user_info = data["user"]
+                    self.log_test("Authentication", True, f"Login successful for user: {user_info.get('username', 'unknown')}", f"Role: {user_info.get('role', 'unknown')}")
+                    return True
+                else:
+                    self.log_test("Authentication", False, "Missing token or user data in response", data)
+                    return False
+            else:
+                self.log_test("Authentication", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Authentication", False, f"Request error: {str(e)}")
+            return False
+    
     def test_api_root(self):
         """Test API root endpoint"""
         try:
