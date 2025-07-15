@@ -560,7 +560,7 @@ const Dashboard = () => {
                 onClick={logout}
                 className={`p-2 rounded-lg ${isDarkMode ? 'bg-red-700 text-white' : 'bg-red-600 text-white'} hover:bg-opacity-80 transition-colors`}
               >
-                <LogoutIcon className="h-5 w-5" />
+                <ArrowLeftOnRectangleIcon className="h-5 w-5" />
               </button>
             </div>
           </div>
