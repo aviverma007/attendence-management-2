@@ -679,7 +679,7 @@ async def get_teams(current_user: dict = Depends(get_current_user)):
 @api_router.get("/users")
 async def get_users(current_user: dict = Depends(require_role([UserRole.ADMIN]))):
     users = await db.users.find({"is_active": True}).to_list(1000)
-    return [{k: v for k, v in user.items() if k != "password_hash"} for user in users]
+    return [{k: str(v) if k == "_id" else v for k, v in user.items() if k != "password_hash"} for user in users]
 
 @api_router.post("/users")
 async def create_user(user_data: UserCreate, current_user: dict = Depends(require_role([UserRole.ADMIN]))):
