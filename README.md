@@ -99,41 +99,50 @@ A comprehensive **full-stack** attendance management system built with FastAPI b
 - `GET /api/users` - List users
 - `POST /api/users` - Create user
 
-## 🚀 **Deployment Guide**
+## 🚀 **Full-Stack Deployment Guide**
 
-### **Render Deployment (Recommended)**
+### **For Render.com (Recommended)**
 
-1. **Fork/Clone this repository**
-2. **Set up MongoDB Atlas:**
-   - Create free cluster
-   - Create database user with `readWriteAnyDatabase` permissions
-   - Whitelist IP `0.0.0.0/0`
-   - Get connection string
-
-3. **Create Render Web Service:**
-   - Connect GitHub repository
-   - Runtime: Python 3
-   - Build Command: `pip install --upgrade pip && pip install --no-cache-dir --prefer-binary --no-build-isolation --only-binary=:all: -r requirements.txt`
-   - Start Command: `uvicorn server:app --host 0.0.0.0 --port $PORT`
-
-4. **Environment Variables:**
+1. **Repository Setup:**
    ```bash
-   MONGO_URL=mongodb+srv://username:password@cluster.mongodb.net/attendance_db
+   git clone your-repo
+   cd attendance-management
+   ```
+
+2. **Create Render Web Service:**
+   - Connect your GitHub repository
+   - Runtime: Python 3.13
+   - **Build Command**: `./build.sh`
+   - **Start Command**: `uvicorn server:app --host 0.0.0.0 --port $PORT`
+
+3. **Environment Variables (Optional):**
+   ```bash
+   MONGO_URL=mongodb://localhost:27017
    DB_NAME=attendance_db
-   JWT_SECRET_KEY=your-super-secret-key-here
-   PIP_ONLY_BINARY=:all:
+   JWT_SECRET_KEY=your-secret-key
    ```
 
-5. **Deploy and Test:**
-   ```bash
-   # Health check
-   curl https://your-app.onrender.com/api/
-   
-   # Login test
-   curl -X POST https://your-app.onrender.com/api/login \
-     -H "Content-Type: application/json" \
-     -d '{"username": "admin", "password": "admin123"}'
-   ```
+4. **Deploy and Access:**
+   - Your app will be available at: `https://your-app.onrender.com`
+   - Frontend: Accessible at root URL
+   - Backend API: Available at `/api/` endpoints
+
+### **How the Full-Stack Works:**
+
+1. **Build Process** (`build.sh`):
+   - Installs Python dependencies
+   - Installs Node.js and builds React app
+   - Creates production-ready frontend in `frontend/build/`
+
+2. **Runtime** (`server.py`):
+   - FastAPI serves API endpoints under `/api/`
+   - FastAPI serves React app for all other routes
+   - Single deployment, single URL
+
+3. **Result**: 
+   - Users see beautiful React frontend
+   - Frontend communicates with FastAPI backend
+   - Complete web application experience
 
 ### **Local Development**
 
