@@ -97,7 +97,12 @@ const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     try {
+      console.log('Attempting login with:', credentials);
+      console.log('API URL:', `${API}/login`);
+      
       const response = await axios.post(`${API}/login`, credentials);
+      console.log('Login response:', response.data);
+      
       const { access_token, user: userData } = response.data;
       
       setToken(access_token);
@@ -106,6 +111,8 @@ const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
+      console.error('Login error:', error);
+      console.error('Error response:', error.response?.data);
       return { 
         success: false, 
         error: error.response?.data?.detail || 'Login failed' 
