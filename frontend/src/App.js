@@ -213,6 +213,9 @@ const Login = () => {
           <p className={`mt-2 text-center text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
             Attendance Management System
           </p>
+          <p className={`mt-1 text-center text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            API: {API}
+          </p>
         </div>
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
