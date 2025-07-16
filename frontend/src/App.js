@@ -181,9 +181,17 @@ const Login = () => {
     setIsLoading(true);
     setError('');
 
+    console.log('Form submitted with credentials:', credentials);
+    console.log('API URL being used:', `${API}/login`);
+    
     const result = await login(credentials);
+    console.log('Login result:', result);
+    
     if (!result.success) {
       setError(result.error);
+      console.error('Login failed:', result.error);
+    } else {
+      console.log('Login successful!');
     }
     setIsLoading(false);
   };
