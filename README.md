@@ -1,28 +1,41 @@
 # 🏢 Smartworld Developers Attendance Management System
 
-A comprehensive full-stack attendance management system built with FastAPI, React, and MongoDB.
+A comprehensive **full-stack** attendance management system built with FastAPI backend and React frontend.
 
-## 🎉 **LIVE DEPLOYMENT**
+## 🎉 **FULL-STACK WEB APPLICATION**
 
-**✅ Successfully deployed on Render:** https://attendence-management-1oi9.onrender.com
+**✅ Complete Web Application:** Frontend + Backend served together on single deployment
 
-## 🚀 **Features**
+## 🚀 **Key Features**
 
-### **Multi-Site Management**
-- 🏢 **9 Sites**: Smartworld HQ, Delhi Branch, Bangalore Tech Park, Chennai Office, Hyderabad Hub, Pune Center, Kolkata Branch, Ahmedabad Office, Noida Extension
+### **📱 React Frontend**
+- Beautiful, modern UI with Tailwind CSS
+- Dashboard with real-time attendance stats
+- Interactive charts and analytics
+- Dark/Light mode toggle
+- Mobile-responsive design
+- Role-based interface
 
-### **Team Organization**
-- 👥 **10 Teams**: Frontend Development, Backend Development, DevOps, QA Testing, Mobile Development, Data Science, UI/UX Design, Product Management, Sales, HR
+### **⚡ FastAPI Backend**
+- High-performance async API
+- JWT authentication
+- Role-based permissions
+- MongoDB integration
+- Automatic data initialization
 
-### **Core Functionality**
-- 📊 **Real-time Attendance Dashboard** with statistics
-- 🔐 **Role-based Authentication** (Admin, President, Head, User)
-- 👨‍💼 **Employee Management** (Add, Edit, Delete, View)
-- 📅 **Leave Management** (Apply, Approve, Track)
-- 📱 **Mobile-responsive Design**
-- 📈 **Advanced Analytics** (Team-wise, Site-wise statistics)
-- ⏱️ **Attendance Tracking** (Present, Late, Absent, Half-day)
-- 🔍 **Real-time Statistics** with percentages and trends
+### **🏢 Multi-Site Management**
+- **9 Sites**: Smartworld HQ, Delhi Branch, Bangalore Tech Park, Chennai Office, Hyderabad Hub, Pune Center, Kolkata Branch, Ahmedabad Office, Noida Extension
+
+### **👥 Team Organization**
+- **10 Teams**: Frontend Development, Backend Development, DevOps, QA Testing, Mobile Development, Data Science, UI/UX Design, Product Management, Sales, HR
+
+### **📊 Core Functionality**
+- Real-time attendance dashboard
+- Employee management (Add/Edit/Delete)
+- Leave management system
+- Site-wise and team-wise analytics
+- Role-based access control
+- Advanced reporting
 
 ## 🛠️ **Technology Stack**
 
