@@ -9,7 +9,7 @@ services:
         value: your-mongodb-connection-string
       - key: DB_NAME
         value: attendance_db
-      - key: JWT_SECRET
+      - key: JWT_SECRET_KEY
         value: your-jwt-secret-key
       - key: PYTHONPATH
         value: /opt/render/project/src
