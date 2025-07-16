@@ -3,10 +3,13 @@ services:
     name: attendance-backend
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.server:app --host 0.0.0.0 --port 10000
-
+    startCommand: uvicorn server:app --host 0.0.0.0 --port 10000
     envVars:
       - key: MONGO_URL
         value: your-mongodb-connection-string
       - key: DB_NAME
         value: attendance_db
+      - key: JWT_SECRET
+        value: your-jwt-secret-key
+      - key: PYTHONPATH
+        value: /opt/render/project/src
