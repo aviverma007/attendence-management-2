@@ -826,6 +826,7 @@ async def get_leave_requests(current_user: dict = Depends(get_current_user)):
 # Include the router in the main app
 app.include_router(api_router)
 
+# Configure CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -833,6 +834,40 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount the React frontend static files
+frontend_build_path = Path(__file__).parent / "frontend" / "build"
+if frontend_build_path.exists():
+    # Serve React static files
+    app.mount("/static", StaticFiles(directory=str(frontend_build_path / "static")), name="static")
+    
+    # Serve React app for all non-API routes
+    @app.get("/{path:path}")
+    async def serve_react_app(path: str):
+        # If it's an API route, don't serve the React app
+        if path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
+        
+        # For all other routes, serve the React app
+        index_file = frontend_build_path / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        else:
+            raise HTTPException(status_code=404, detail="Frontend not built")
+    
+    # Serve React app for root path
+    @app.get("/")
+    async def serve_root():
+        index_file = frontend_build_path / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        else:
+            return {"message": "Smartworld Developers Attendance System API - Frontend not built"}
+else:
+    # Fallback if frontend is not built
+    @app.get("/")
+    async def root():
+        return {"message": "Smartworld Developers Attendance System API - Frontend not built"}
 
 # Configure logging
 logging.basicConfig(
