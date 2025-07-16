@@ -836,6 +836,8 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting up Smartworld Developers Attendance System")
+    await init_sample_data()
+    logger.info("Sample data initialized")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
