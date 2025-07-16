@@ -394,7 +394,13 @@ async def init_sample_data():
             check_out = time(17, random.randint(30, 59))
         elif status == "late":
             late_minutes = random.randint(15, 60)
-            check_in = time(9, 30 + late_minutes)
+            # Calculate check-in time properly with late_minutes
+            check_in_hour = 9
+            check_in_minute = 30 + late_minutes
+            if check_in_minute >= 60:
+                check_in_hour += check_in_minute // 60
+                check_in_minute = check_in_minute % 60
+            check_in = time(check_in_hour, check_in_minute)
             check_out = time(17, random.randint(30, 59))
         elif status == "half_day":
             check_in = time(9, random.randint(0, 30))
