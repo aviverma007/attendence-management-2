@@ -35,11 +35,11 @@ services:
     plan: free
     envVars:
       - key: MONGO_URL
-        value: your-mongodb-connection-string
+        value: mongodb+srv://smartworld:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/attendance_db
       - key: DB_NAME
         value: attendance_db
       - key: JWT_SECRET_KEY
-        value: your-jwt-secret-key-here
+        value: your-super-secret-jwt-key-12345
       - key: PIP_NO_CACHE_DIR
         value: 1
       - key: PIP_PREFER_BINARY
