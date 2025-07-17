@@ -56,18 +56,23 @@ This guide will deploy the **Smartworld Developers Attendance Management System*
      uvicorn server:app --host 0.0.0.0 --port $PORT
      ```
 
-3. **Environment Variables**
-   Add these in Render.com dashboard:
+3. **Environment Variables** (CRITICAL - Set these in Render.com dashboard)
+   Add these in Render.com dashboard under "Environment" tab:
    ```
-   MONGO_URL=mongodb+srv://username:password@cluster.mongodb.net/attendance_db
+   MONGO_URL=mongodb+srv://smartworld:YOUR_PASSWORD@cluster0.xxxxx.mongodb.net/attendance_db
    DB_NAME=attendance_db
-   JWT_SECRET_KEY=your-super-secret-jwt-key-here
+   JWT_SECRET_KEY=your-super-secret-jwt-key-12345
    PIP_NO_CACHE_DIR=1
    PIP_PREFER_BINARY=1
    PIP_NO_BUILD_ISOLATION=1
    PIP_ONLY_BINARY=:all:
    NODE_ENV=production
    ```
+
+   **⚠️ IMPORTANT**: 
+   - Replace `YOUR_PASSWORD` with your actual MongoDB password
+   - Replace `cluster0.xxxxx.mongodb.net` with your actual cluster URL
+   - Use a strong JWT secret key
 
 ### Step 3: Deploy
 1. Click "Create Web Service"
