@@ -82,9 +82,13 @@ const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       if (token) {
         try {
+          console.log('Checking token validity...');
           const response = await axios.get(`${API}/me`);
+          console.log('Token is valid, user:', response.data);
           setUser(response.data);
         } catch (error) {
+          console.log('Token validation failed:', error.response?.data || error.message);
+          console.log('Removing invalid token and logging out...');
           localStorage.removeItem('token');
           setToken(null);
         }
