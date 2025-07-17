@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: smartworld-attendance-fullstack
+    env: python
+    runtime: python-3.13
+    buildCommand: |
+      echo "🚀 Starting Full-Stack Deployment Build..."
+      python -m pip install --upgrade pip
+      pip install --no-cache-dir --prefer-binary --no-build-isolation --only-binary=:all: -r requirements.txt
+      
+      # Install Node.js and yarn if not available
+      if ! command -v node &> /dev/null; then
+          echo "📦 Installing Node.js..."
+          curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+          apt-get install -y nodejs
+      fi
+      
+      if ! command -v yarn &> /dev/null; then
+          echo "📦 Installing Yarn..."
+          npm install -g yarn
+      fi
+      
+      # Build React frontend
+      echo "📦 Building React frontend..."
+      cd frontend
+      yarn install
+      yarn build
+      cd ..
+      
+      echo "✅ Full-Stack Build Complete!"
+      echo "📁 Frontend build ready to be served by FastAPI"
+      ls -la frontend/build/
+      
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
+    plan: free
+    envVars:
+      - key: MONGO_URL
+        value: your-mongodb-connection-string
+      - key: DB_NAME
+        value: attendance_db
+      - key: JWT_SECRET_KEY
+        value: your-jwt-secret-key-here
+      - key: PIP_NO_CACHE_DIR
+        value: 1
+      - key: PIP_PREFER_BINARY
+        value: 1
+      - key: PIP_NO_BUILD_ISOLATION
+        value: 1
+      - key: PIP_ONLY_BINARY
+        value: ":all:"
+      - key: NODE_ENV
+        value: production
