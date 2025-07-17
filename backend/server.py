@@ -33,6 +33,13 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 db_name = os.environ.get('DB_NAME', 'test_database')
+
+# Log the connection details (without exposing credentials)
+if 'mongodb+srv://' in mongo_url:
+    logging.info(f"Connecting to MongoDB Atlas cluster, Database: {db_name}")
+else:
+    logging.info(f"Connecting to MongoDB at: {mongo_url}, Database: {db_name}")
+
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
 
