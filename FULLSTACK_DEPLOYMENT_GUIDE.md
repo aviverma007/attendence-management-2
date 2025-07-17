@@ -17,12 +17,26 @@ This guide will deploy the **Smartworld Developers Attendance Management System*
 
 ## 🔧 Step-by-Step Deployment
 
-### Step 1: Set up MongoDB Atlas
-1. Go to [MongoDB Atlas](https://cloud.mongodb.com/)
-2. Create a free cluster
-3. Create a database user
-4. Get connection string (replace `<password>` with your password)
-5. Whitelist IP addresses (use 0.0.0.0/0 for all IPs)
+### Step 1: Set up MongoDB Atlas (REQUIRED)
+1. **Go to MongoDB Atlas**: https://cloud.mongodb.com/
+2. **Create a free account** or sign in
+3. **Create a new cluster**:
+   - Choose "Create a deployment" → "M0 Free"
+   - Choose your preferred region  
+   - Cluster name: `smartworld-attendance`
+4. **Create a database user**:
+   - Go to "Database Access" → "Add New Database User"
+   - Username: `smartworld` (or your choice)
+   - Password: Generate a strong password (save it!)
+   - Built-in role: `Read and write to any database`
+5. **Whitelist IP addresses**:
+   - Go to "Network Access" → "Add IP Address"
+   - Choose "Allow access from anywhere" (0.0.0.0/0)
+6. **Get connection string**:
+   - Go to "Database" → "Connect" → "Connect your application"
+   - Copy the connection string (looks like: `mongodb+srv://smartworld:<password>@cluster0.xxxxx.mongodb.net/`)
+
+**⚠️ CRITICAL**: Replace `<password>` with your actual MongoDB password in the connection string.
 
 ### Step 2: Deploy on Render.com
 1. **Connect GitHub Repository**
