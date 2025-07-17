@@ -677,7 +677,7 @@ const Dashboard = () => {
               <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-800'} mb-4`}>
                 Today's Attendance Overview
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                 <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-blue-100'} p-4 rounded-lg`}>
                   <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-blue-300' : 'text-blue-800'}`}>
                     Total Employees
@@ -708,6 +708,14 @@ const Dashboard = () => {
                   </h3>
                   <p className={`text-2xl font-bold ${isDarkMode ? 'text-yellow-200' : 'text-yellow-900'}`}>
                     {attendanceStats.late || 0}
+                  </p>
+                </div>
+                <div className={`${isDarkMode ? 'bg-gray-700' : 'bg-orange-100'} p-4 rounded-lg`}>
+                  <h3 className={`text-lg font-semibold ${isDarkMode ? 'text-orange-300' : 'text-orange-800'}`}>
+                    Half Day
+                  </h3>
+                  <p className={`text-2xl font-bold ${isDarkMode ? 'text-orange-200' : 'text-orange-900'}`}>
+                    {attendanceStats.half_day || 0}
                   </p>
                 </div>
               </div>
