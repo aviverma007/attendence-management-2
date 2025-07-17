@@ -81,16 +81,29 @@ const AuthProvider = ({ children }) => {
   useEffect(() => {
     const checkAuth = async () => {
       if (token) {
-        try {
-          console.log('Checking token validity...');
-          const response = await axios.get(`${API}/me`);
-          console.log('Token is valid, user:', response.data);
-          setUser(response.data);
-        } catch (error) {
-          console.log('Token validation failed:', error.response?.data || error.message);
-          console.log('Removing invalid token and logging out...');
-          localStorage.removeItem('token');
-          setToken(null);
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+          try {
+            console.log(`Checking token validity... (attempt ${retryCount + 1}/${maxRetries})`);
+            const response = await axios.get(`${API}/me`);
+            console.log('Token is valid, user:', response.data);
+            setUser(response.data);
+            break;
+          } catch (error) {
+            console.log(`Token validation failed (attempt ${retryCount + 1}):`, error.response?.data || error.message);
+            retryCount++;
+            
+            if (retryCount >= maxRetries) {
+              console.log('Max retries reached. Removing invalid token and logging out...');
+              localStorage.removeItem('token');
+              setToken(null);
+            } else {
+              // Wait 1 second before retrying
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
         }
       }
       setIsLoading(false);
