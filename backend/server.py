@@ -580,8 +580,13 @@ async def get_attendance_stats(current_user: dict = Depends(get_current_user)):
     
     present_count = len([att for att in today_attendance if att["status"] == "present"])
     late_count = len([att for att in today_attendance if att["status"] == "late"])
-    absent_count = len([att for att in today_attendance if att["status"] == "absent"])
     half_day_count = len([att for att in today_attendance if att["status"] == "half_day"])
+    
+    # Calculate absent count correctly
+    # Employees with explicit 'absent' status + employees with no attendance record
+    explicitly_absent = len([att for att in today_attendance if att["status"] == "absent"])
+    attendance_recorded = len(today_attendance)
+    absent_count = explicitly_absent + (total_employees - attendance_recorded)
     
     return {
         "total_employees": total_employees,
