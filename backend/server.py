@@ -686,8 +686,13 @@ async def get_site_attendance_stats(current_user: dict = Depends(get_current_use
         
         present_count = len([att for att in site_attendance if att["status"] == "present"])
         late_count = len([att for att in site_attendance if att["status"] == "late"])
-        absent_count = len([att for att in site_attendance if att["status"] == "absent"])
         half_day_count = len([att for att in site_attendance if att["status"] == "half_day"])
+        
+        # Calculate absent count correctly
+        # Employees with explicit 'absent' status + employees with no attendance record
+        explicitly_absent = len([att for att in site_attendance if att["status"] == "absent"])
+        attendance_recorded = len(site_attendance)
+        absent_count = explicitly_absent + (total_members - attendance_recorded)
         
         site_stats.append({
             "site": site["name"],
