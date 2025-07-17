@@ -897,8 +897,17 @@ logger = logging.getLogger(__name__)
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting up Smartworld Developers Attendance System")
-    await init_sample_data()
-    logger.info("Sample data initialized")
+    try:
+        # Test MongoDB connection
+        await client.admin.command('ping')
+        logger.info("MongoDB connection successful")
+        
+        await init_sample_data()
+        logger.info("Sample data initialized")
+    except Exception as e:
+        logger.error(f"Startup failed: {str(e)}")
+        logger.error(f"MongoDB URL: {mongo_url.replace(mongo_url.split('@')[0].split('://')[1], '***') if '@' in mongo_url else mongo_url}")
+        raise
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
