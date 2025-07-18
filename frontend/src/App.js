@@ -1668,7 +1668,302 @@ const EmployeesTab = ({
   );
 };
 
-// Enhanced Employee Card Component
+// Enhanced Employee Search with Autocomplete and Real-time Suggestions
+const EnhancedEmployeeSearch = ({ onEmployeeSelect }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [employeeDetails, setEmployeeDetails] = useState(null);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchType, setSearchType] = useState('code'); // 'code' or 'name'
+  const searchInputRef = useRef(null);
+
+  // Debounced search for suggestions
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      if (searchQuery.trim().length >= 2) {
+        setIsLoading(true);
+        try {
+          const response = await axios.get(`${API}/employees/suggestions`, {
+            params: { query: searchQuery, limit: 10 }
+          });
+          setSuggestions(response.data);
+          setShowSuggestions(true);
+        } catch (error) {
+          console.error('Error fetching suggestions:', error);
+          setSuggestions([]);
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Search employee by code
+  const searchEmployeeByCode = async (code) => {
+    if (!code.trim()) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${API}/employees/search`, {
+        params: { code: code.trim() }
+      });
+      setEmployeeDetails(response.data);
+      setSelectedEmployee(response.data);
+      if (onEmployeeSelect) {
+        onEmployeeSelect(response.data);
+      }
+    } catch (error) {
+      console.error('Error searching employee:', error);
+      setEmployeeDetails(null);
+      setSelectedEmployee(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = (suggestion) => {
+    setSearchQuery(suggestion.code);
+    setShowSuggestions(false);
+    searchEmployeeByCode(suggestion.code);
+  };
+
+  // Handle form submission
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      searchEmployeeByCode(searchQuery.trim());
+      setShowSuggestions(false);
+    }
+  };
+
+  // Handle input blur
+  const handleInputBlur = () => {
+    setTimeout(() => setShowSuggestions(false), 200);
+  };
+
+  // Handle input focus
+  const handleInputFocus = () => {
+    if (suggestions.length > 0) {
+      setShowSuggestions(true);
+    }
+  };
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchQuery('');
+    setEmployeeDetails(null);
+    setSelectedEmployee(null);
+    setSuggestions([]);
+    setShowSuggestions(false);
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-4">
+          <div className="h-12 w-12 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center">
+            <MagnifyingGlassIcon className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Employee Search</h2>
+            <p className="text-gray-600">Search employees by code or name with real-time suggestions</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setSearchType('code')}
+            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+              searchType === 'code' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            By Code
+          </button>
+          <button
+            onClick={() => setSearchType('name')}
+            className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+              searchType === 'name' 
+                ? 'bg-blue-600 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+            }`}
+          >
+            By Name
+          </button>
+        </div>
+      </div>
+
+      {/* Search Form */}
+      <form onSubmit={handleSubmit} className="mb-6">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
+            placeholder={`Search employee by ${searchType === 'code' ? 'employee code (e.g. 001, 100)' : 'name'}`}
+            className="w-full pl-10 pr-20 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg"
+          />
+          <div className="absolute inset-y-0 right-0 flex items-center space-x-2 pr-3">
+            {isLoading && (
+              <ArrowPathIcon className="h-5 w-5 text-gray-400 animate-spin" />
+            )}
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            )}
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Search
+            </button>
+          </div>
+
+          {/* Suggestions Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg max-h-80 overflow-y-auto">
+              {suggestions.map((suggestion, index) => (
+                <button
+                  key={index}
+                  onClick={() => handleSuggestionSelect(suggestion)}
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className="h-8 w-8 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                      <UserIcon className="h-4 w-4 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{suggestion.name}</p>
+                      <p className="text-sm text-gray-600">
+                        Code: {suggestion.code} • {suggestion.department} • {suggestion.location}
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </form>
+
+      {/* Employee Details */}
+      {employeeDetails && (
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl p-6 border border-blue-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Employee Details</h3>
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+              employeeDetails.attendance_status === 'Present' 
+                ? 'bg-green-100 text-green-800' 
+                : 'bg-red-100 text-red-800'
+            }`}>
+              {employeeDetails.attendance_status}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-3">
+                <div className="h-12 w-12 bg-gradient-to-r from-blue-500 to-cyan-600 rounded-xl flex items-center justify-center">
+                  <UserIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <p className="text-xl font-bold text-gray-900">{employeeDetails.name}</p>
+                  <p className="text-gray-600">Employee ID: {employeeDetails.employee_id}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center text-sm text-gray-600">
+                  <BuildingOfficeIcon className="h-4 w-4 mr-3 text-gray-400" />
+                  <span className="font-medium">Department:</span>
+                  <span className="ml-2">{employeeDetails.department}</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <MapPinIcon className="h-4 w-4 mr-3 text-gray-400" />
+                  <span className="font-medium">Location:</span>
+                  <span className="ml-2">{employeeDetails.site}</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <PhoneIcon className="h-4 w-4 mr-3 text-gray-400" />
+                  <span className="font-medium">Mobile:</span>
+                  <span className="ml-2">{employeeDetails.mobile}</span>
+                </div>
+                <div className="flex items-center text-sm text-gray-600">
+                  <EnvelopeIcon className="h-4 w-4 mr-3 text-gray-400" />
+                  <span className="font-medium">Email:</span>
+                  <span className="ml-2">{employeeDetails.email}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Recent Attendance */}
+            <div>
+              <h4 className="font-medium text-gray-900 mb-3">Recent Attendance</h4>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {employeeDetails.recent_logs && employeeDetails.recent_logs.length > 0 ? (
+                  employeeDetails.recent_logs.slice(0, 5).map((log, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          log.c1 === '1' ? 'bg-green-500' : 'bg-red-500'
+                        }`}></div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {log.c1 === '1' ? 'Check In' : 'Check Out'}
+                          </p>
+                          <p className="text-xs text-gray-500">{log.log_date}</p>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Device {log.device_id}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No recent attendance records</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search Tips */}
+      <div className="mt-6 bg-gray-50 rounded-xl p-4">
+        <h4 className="font-medium text-gray-900 mb-2">Search Tips</h4>
+        <ul className="text-sm text-gray-600 space-y-1">
+          <li>• Enter at least 2 characters to see suggestions</li>
+          <li>• Use employee codes like 001, 100, 200 for quick search</li>
+          <li>• Search by name or department for broader results</li>
+          <li>• Click on suggestions for instant selection</li>
+        </ul>
+      </div>
+    </div>
+  );
+};
 const EmployeeCard = ({ employee, onSelect, selected, onSelectChange }) => {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
