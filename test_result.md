@@ -173,7 +173,7 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Planning to create comprehensive dashboard with summary cards, location-based views, and department organization."
+        comment: "Planning to create comprehensive dashboard with summary cards, location-based views, and department organization. Now enhanced with attendance logs visualization."
         
   - task: "Employee Search Functionality"
     implemented: false
@@ -185,7 +185,7 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Planning to implement advanced search functionality with filters by name, department, site, and attendance status."
+        comment: "Planning to implement advanced search functionality with filters by name, department, site, and attendance status. Enhanced with attendance log filtering."
         
   - task: "Employee Details Display"
     implemented: false
@@ -197,7 +197,19 @@ frontend:
     status_history:
       - working: "NA"
         agent: "main"
-        comment: "Planning to create detailed employee profile view with comprehensive information display."
+        comment: "Planning to create detailed employee profile view with comprehensive information display including attendance log history."
+        
+  - task: "Attendance Logs Visualization"
+    implemented: false
+    working: "NA"
+    file: "/app/frontend/src/App.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "New component to visualize attendance logs with device information, timestamps, and user activity tracking."
 
 metadata:
   created_by: "main_agent"
