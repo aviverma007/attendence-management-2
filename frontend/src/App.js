@@ -316,14 +316,16 @@ const Dashboard = () => {
       const [statsRes, logStatsRes, employeesRes, logsRes, syncRes] = await Promise.all([
         axios.get(`${API}/stats/attendance`),
         axios.get(`${API}/attendance-logs/stats`),
-        axios.get(`${API}/employees?limit=50`),
+        fetchEmployees('', 1000), // Fetch all employees with high limit
         axios.get(`${API}/attendance-logs?limit=20`),
         axios.get(`${API}/sync/status`)
       ]);
 
       setStats(statsRes.data);
       setAttendanceLogStats(logStatsRes.data);
-      setEmployees(employeesRes.data.employees || []);
+      setEmployees(employeesRes.employees || []);
+      setAllEmployees(employeesRes.employees || []);
+      setTotalEmployeeCount(employeesRes.total_count || 0);
       setAttendanceLogs(logsRes.data.logs || []);
       setSyncStatus(syncRes.data);
     } catch (error) {
