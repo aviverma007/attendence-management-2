@@ -947,17 +947,15 @@ async def get_daily_attendance_stats(
     
     stats = await sheets_service.get_daily_attendance_stats(date)
     
-    # Add percentages
+    # Add percentages (removed half_day_percentage)
     total = stats["total_employees"]
     if total > 0:
         stats["present_percentage"] = round((stats["present"] / total) * 100, 2)
         stats["absent_percentage"] = round((stats["absent"] / total) * 100, 2)
-        stats["half_day_percentage"] = round((stats["half_day"] / total) * 100, 2)
         stats["on_leave_percentage"] = round((stats["on_leave"] / total) * 100, 2)
     else:
         stats["present_percentage"] = 0
         stats["absent_percentage"] = 0
-        stats["half_day_percentage"] = 0
         stats["on_leave_percentage"] = 0
     
     stats["date"] = date
