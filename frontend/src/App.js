@@ -58,6 +58,22 @@ import {
   SunIcon,
   MoonIcon
 } from '@heroicons/react/24/outline';
+
+// Import additional components
+import { 
+  AttendanceTab, 
+  AnalyticsTab, 
+  DevicesTab 
+} from './components/AdvancedComponents';
+
+import { 
+  EmployeeModal, 
+  NotificationModal, 
+  SettingsModal, 
+  AddEmployeeModal, 
+  BulkOperationsModal, 
+  NotificationSystem 
+} from './components/ModalComponents';
 import { 
   CheckCircleIcon as CheckCircleIconSolid,
   XCircleIcon as XCircleIconSolid,
