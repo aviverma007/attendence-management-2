@@ -358,12 +358,19 @@ const Dashboard = () => {
     }
   };
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.employee_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    emp.site.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Enhanced search function that works with backend
+  const handleSearch = async (query) => {
+    setSearchQuery(query);
+    if (query.trim()) {
+      const employeeData = await fetchEmployees(query, 1000);
+      setEmployees(employeeData.employees || []);
+    } else {
+      setEmployees(allEmployees);
+    }
+  };
+
+  // For backward compatibility, keep filtered employees but make it work with current data
+  const filteredEmployees = employees;
 
   if (loading) {
     return (
