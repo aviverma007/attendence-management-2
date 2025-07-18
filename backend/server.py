@@ -1062,6 +1062,8 @@ async def search_employee_by_code(
     today_logs = await db.attendance_logs.find(query).to_list(length=None)
     
     if today_logs:
+        # Convert ObjectId to string
+        today_logs = convert_object_id(today_logs)
         punch_details = sheets_service.get_daily_punch_details(today_logs)
         employee_details["today_punch_details"] = punch_details
     else:
