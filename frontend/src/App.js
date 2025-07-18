@@ -25,6 +25,7 @@ import {
   ArrowPathIcon,
   ChevronDownIcon,
   ChevronUpIcon,
+  ChevronRightIcon,
   ComputerDesktopIcon,
   DevicePhoneMobileIcon,
   DocumentTextIcon,
