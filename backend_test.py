@@ -699,7 +699,7 @@ class GoogleSheetsEmployeeSystemTester:
             
             # Test POST endpoints that should require authentication
             post_endpoints = [
-                "/sync/attendance-logs"
+                "/sync/google-sheets"
             ]
             
             all_protected = True
