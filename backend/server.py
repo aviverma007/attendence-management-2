@@ -1144,7 +1144,7 @@ async def get_sync_status(current_user: dict = Depends(get_current_user)):
 app.include_router(api_router)
 
 # Serve static files and handle SPA routing
-static_dir = Path(__file__).parent / "frontend" / "build"
+static_dir = Path(__file__).parent / "frontend"
 if static_dir.exists():
     app.mount("/static", StaticFiles(directory=str(static_dir / "static")), name="static")
     
