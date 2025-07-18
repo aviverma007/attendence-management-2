@@ -561,6 +561,7 @@ class GoogleSheetsEmployeeSystemTester:
         """Run all backend API tests"""
         print("=" * 80)
         print("GOOGLE SHEETS INTEGRATED EMPLOYEE MANAGEMENT SYSTEM - BACKEND API TESTING")
+        print("WITH NEW ATTENDANCE LOGS INTEGRATION")
         print("=" * 80)
         
         # Test API health first
@@ -577,13 +578,27 @@ class GoogleSheetsEmployeeSystemTester:
         print("TESTING GOOGLE SHEETS INTEGRATION")
         print("=" * 50)
         self.test_google_sheets_sync()
+        self.test_sync_attendance_logs()
         self.test_sync_status()
+        
+        print("\n" + "=" * 50)
+        print("TESTING NEW ATTENDANCE LOGS ENDPOINTS")
+        print("=" * 50)
+        attendance_logs = self.test_get_attendance_logs()
+        self.test_attendance_logs_filtering()
+        self.test_attendance_logs_stats()
         
         print("\n" + "=" * 50)
         print("TESTING EMPLOYEE DATA")
         print("=" * 50)
         employees = self.test_get_employees()
         self.test_employee_search()
+        
+        print("\n" + "=" * 50)
+        print("TESTING DATA INTEGRITY & SECURITY")
+        print("=" * 50)
+        self.test_data_integrity()
+        self.test_authentication_required()
         
         print("\n" + "=" * 50)
         print("TESTING EMPLOYEE CRUD OPERATIONS")
