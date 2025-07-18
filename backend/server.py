@@ -967,8 +967,19 @@ async def get_daily_attendance_stats(
 ):
     """Get daily attendance statistics for a specific date"""
     if not date:
-        from datetime import datetime
-        date = datetime.now().strftime("%m/%d/%Y")
+        # If no date provided, use the most recent date with attendance logs
+        recent_dates = await db.attendance_logs.distinct("download_date")
+        if recent_dates:
+            # Sort dates and get the most recent
+            try:
+                sorted_dates = sorted(recent_dates, key=lambda x: datetime.strptime(x, "%m/%d/%Y"), reverse=True)
+                date = sorted_dates[0]
+            except:
+                # If date parsing fails, use the first date
+                date = recent_dates[0]
+        else:
+            # If no attendance logs exist, use today's date
+            date = datetime.now().strftime("%m/%d/%Y")
     
     stats = await sheets_service.get_daily_attendance_stats(date)
     
