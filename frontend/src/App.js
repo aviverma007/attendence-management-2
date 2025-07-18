@@ -22,8 +22,43 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   ExclamationTriangleIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  ComputerDesktopIcon,
+  DevicePhoneMobileIcon,
+  DocumentTextIcon,
+  ChartPieIcon,
+  HomeIcon,
+  CubeIcon,
+  Square3Stack3DIcon,
+  QrCodeIcon,
+  ClipboardDocumentListIcon,
+  BellIcon,
+  MagnifyingGlassCircleIcon,
+  FunnelIcon,
+  DocumentChartBarIcon,
+  ListBulletIcon,
+  TableCellsIcon,
+  ViewColumnsIcon,
+  ClockIcon as TimeIcon,
+  MapIcon,
+  SignalIcon,
+  WifiIcon,
+  ShieldCheckIcon,
+  EllipsisVerticalIcon
 } from '@heroicons/react/24/outline';
+import { 
+  CheckCircleIcon as CheckCircleIconSolid,
+  XCircleIcon as XCircleIconSolid,
+  ExclamationTriangleIcon as ExclamationTriangleIconSolid,
+  ClockIcon as ClockIconSolid,
+  ChartBarIcon as ChartBarIconSolid,
+  UserIcon as UserIconSolid,
+  BuildingOfficeIcon as BuildingOfficeIconSolid,
+  MapPinIcon as MapPinIconSolid,
+  ComputerDesktopIcon as ComputerDesktopIconSolid
+} from '@heroicons/react/24/solid';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -105,17 +140,17 @@ const AuthProvider = ({ children }) => {
   );
 };
 
-// Login Component
-const LoginPage = () => {
+// Enhanced Login Component
+const Login = () => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
+    setIsLoading(true);
 
     const result = await login(credentials);
     
@@ -123,135 +158,267 @@ const LoginPage = () => {
       setError(result.error);
     }
     
-    setLoading(false);
+    setIsLoading(false);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-blue-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full space-y-8">
+        {/* Header */}
         <div className="text-center">
-          <div className="mx-auto h-20 w-20 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-            <UsersIcon className="h-10 w-10 text-white" />
+          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-6">
+            <UserCircleIcon className="h-8 w-8 text-white" />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            Employee Management System
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to access your dashboard
-          </p>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+          <p className="text-gray-600">Sign in to your employee management account</p>
         </div>
-        
-        <form className="mt-8 space-y-6 bg-white p-8 rounded-xl shadow-lg" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              <div className="flex items-center">
-                <ExclamationTriangleIcon className="h-5 w-5 mr-2" />
-                {error}
+
+        {/* Login Form */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 border border-white/20">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
+                <div className="flex">
+                  <XCircleIcon className="h-5 w-5 text-red-400 mr-2" />
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
               </div>
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium text-gray-700">
-                Username
-              </label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:z-10 sm:text-sm"
-                placeholder="Enter your username"
-                value={credentials.username}
-                onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
-              />
-            </div>
+            )}
             
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                Username
+              </label>
+              <div className="relative">
+                <UserIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <input
+                  id="username"
+                  type="text"
+                  value={credentials.username}
+                  onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  placeholder="Enter your username"
+                  required
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
                 Password
               </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent focus:z-10 sm:text-sm"
-                placeholder="Enter your password"
-                value={credentials.password}
-                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-              />
+              <div className="relative">
+                <ShieldCheckIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+                <input
+                  id="password"
+                  type="password"
+                  value={credentials.password}
+                  onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                  className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                  placeholder="Enter your password"
+                  required
+                />
+              </div>
             </div>
-          </div>
 
-          <div>
             <button
               type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-indigo-600 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02]"
             >
-              {loading ? (
-                <div className="flex items-center">
-                  <ArrowPathIcon className="h-5 w-5 animate-spin mr-2" />
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <ArrowPathIcon className="animate-spin h-5 w-5 mr-2" />
                   Signing in...
                 </div>
               ) : (
-                'Sign in'
+                'Sign In'
               )}
             </button>
-          </div>
+          </form>
           
-          <div className="text-center">
-            <p className="text-xs text-gray-500">
-              Default credentials: admin / admin123
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600">
+              Demo credentials: <span className="font-semibold">admin / admin123</span>
             </p>
           </div>
-        </form>
+        </div>
+
+        {/* Footer */}
+        <div className="text-center">
+          <p className="text-sm text-gray-500">
+            Powered by Modern Employee Management System
+          </p>
+        </div>
       </div>
     </div>
   );
 };
 
-// Dashboard Header Component
-const DashboardHeader = ({ user, onLogout, onSync, syncing }) => {
+// Enhanced Dashboard Component
+const Dashboard = () => {
+  const [stats, setStats] = useState({});
+  const [attendanceLogStats, setAttendanceLogStats] = useState({});
+  const [employees, setEmployees] = useState([]);
+  const [attendanceLogs, setAttendanceLogs] = useState([]);
+  const [syncStatus, setSyncStatus] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState('overview');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [syncLoading, setSyncLoading] = useState(false);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch all dashboard data
+      const [statsRes, logStatsRes, employeesRes, logsRes, syncRes] = await Promise.all([
+        axios.get(`${API}/stats/attendance`),
+        axios.get(`${API}/attendance-logs/stats`),
+        axios.get(`${API}/employees?limit=50`),
+        axios.get(`${API}/attendance-logs?limit=20`),
+        axios.get(`${API}/sync/status`)
+      ]);
+
+      setStats(statsRes.data);
+      setAttendanceLogStats(logStatsRes.data);
+      setEmployees(employeesRes.data.employees || []);
+      setAttendanceLogs(logsRes.data.logs || []);
+      setSyncStatus(syncRes.data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSync = async () => {
+    setSyncLoading(true);
+    try {
+      await axios.post(`${API}/sync/google-sheets`);
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('Error syncing data:', error);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  const filteredEmployees = employees.filter(emp => 
+    emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    emp.employee_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    emp.department.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    emp.site.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <ArrowPathIcon className="h-12 w-12 text-indigo-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <Header onSync={handleSync} syncLoading={syncLoading} />
+      
+      {/* Navigation */}
+      <nav className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex space-x-8">
+            {[
+              { id: 'overview', label: 'Overview', icon: HomeIcon },
+              { id: 'employees', label: 'Employees', icon: UsersIcon },
+              { id: 'attendance', label: 'Attendance Logs', icon: ClipboardDocumentListIcon },
+              { id: 'analytics', label: 'Analytics', icon: ChartBarIcon },
+              { id: 'devices', label: 'Devices', icon: ComputerDesktopIcon }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setCurrentView(tab.id)}
+                className={`flex items-center px-3 py-4 text-sm font-medium border-b-2 transition-colors ${
+                  currentView === tab.id
+                    ? 'text-indigo-600 border-indigo-500'
+                    : 'text-gray-500 border-transparent hover:text-gray-700 hover:border-gray-300'
+                }`}
+              >
+                <tab.icon className="h-5 w-5 mr-2" />
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </nav>
+
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {currentView === 'overview' && <OverviewTab stats={stats} attendanceLogStats={attendanceLogStats} syncStatus={syncStatus} />}
+        {currentView === 'employees' && <EmployeesTab employees={filteredEmployees} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onEmployeeSelect={setSelectedEmployee} />}
+        {currentView === 'attendance' && <AttendanceTab attendanceLogs={attendanceLogs} />}
+        {currentView === 'analytics' && <AnalyticsTab stats={stats} attendanceLogStats={attendanceLogStats} />}
+        {currentView === 'devices' && <DevicesTab attendanceLogStats={attendanceLogStats} />}
+      </main>
+
+      {/* Employee Detail Modal */}
+      {selectedEmployee && (
+        <EmployeeDetailModal 
+          employee={selectedEmployee} 
+          onClose={() => setSelectedEmployee(null)}
+        />
+      )}
+    </div>
+  );
+};
+
+// Enhanced Header Component
+const Header = ({ onSync, syncLoading }) => {
+  const { user, logout } = useAuth();
+
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
+          {/* Logo and Title */}
           <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-8 w-8 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-                <UsersIcon className="h-5 w-5 text-white" />
-              </div>
+            <div className="h-8 w-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
+              <BuildingOfficeIcon className="h-5 w-5 text-white" />
             </div>
-            <div className="ml-3">
-              <h1 className="text-xl font-semibold text-gray-900">Employee Management</h1>
-            </div>
+            <h1 className="text-xl font-bold text-gray-900">
+              Employee Management System
+            </h1>
           </div>
-          
+
+          {/* Actions */}
           <div className="flex items-center space-x-4">
             <button
               onClick={onSync}
-              disabled={syncing}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={syncLoading}
+              className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
-              <ArrowPathIcon className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
-              {syncing ? 'Syncing...' : 'Sync Data'}
+              <ArrowPathIcon className={`h-4 w-4 mr-2 ${syncLoading ? 'animate-spin' : ''}`} />
+              {syncLoading ? 'Syncing...' : 'Sync Data'}
             </button>
             
-            <div className="flex items-center">
+            <div className="flex items-center space-x-3">
               <UserCircleIcon className="h-8 w-8 text-gray-400" />
-              <span className="ml-2 text-sm font-medium text-gray-700">{user?.username}</span>
+              <span className="text-sm font-medium text-gray-700">{user?.username}</span>
+              <button
+                onClick={logout}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <ArrowRightOnRectangleIcon className="h-5 w-5" />
+              </button>
             </div>
-            
-            <button
-              onClick={onLogout}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <ArrowRightOnRectangleIcon className="h-4 w-4 mr-2" />
-              Logout
-            </button>
           </div>
         </div>
       </div>
@@ -259,458 +426,684 @@ const DashboardHeader = ({ user, onLogout, onSync, syncing }) => {
   );
 };
 
-// Statistics Cards Component
-const StatisticsCards = ({ stats }) => {
-  const cards = [
-    {
-      title: 'Total Employees',
-      value: stats.total_employees || 0,
-      icon: UsersIcon,
-      color: 'blue',
-      bgColor: 'bg-blue-50',
-      iconColor: 'text-blue-600'
-    },
-    {
-      title: 'Present Today',
-      value: stats.present || 0,
-      icon: CheckCircleIcon,
-      color: 'green',
-      bgColor: 'bg-green-50',
-      iconColor: 'text-green-600'
-    },
-    {
-      title: 'Absent Today',
-      value: stats.absent || 0,
-      icon: XCircleIcon,
-      color: 'red',
-      bgColor: 'bg-red-50',
-      iconColor: 'text-red-600'
-    },
-    {
-      title: 'Attendance Rate',
-      value: `${stats.present_percentage || 0}%`,
-      icon: ChartBarIcon,
-      color: 'indigo',
-      bgColor: 'bg-indigo-50',
-      iconColor: 'text-indigo-600'
-    }
-  ];
+// Overview Tab Component
+const OverviewTab = ({ stats, attendanceLogStats, syncStatus }) => {
+  return (
+    <div className="space-y-6">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-3xl font-bold mb-2">Dashboard Overview</h2>
+            <p className="text-indigo-100">
+              Monitor employee attendance and system performance in real-time
+            </p>
+          </div>
+          <div className="hidden md:block">
+            <img 
+              src="https://images.unsplash.com/photo-1748609160056-7b95f30041f0?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzB8MHwxfHNlYXJjaHwyfHxvZmZpY2UlMjBkYXNoYm9hcmR8ZW58MHx8fHwxNzUyODIxNTc1fDA&ixlib=rb-4.1.0&q=85"
+              alt="Dashboard Analytics"
+              className="w-32 h-32 rounded-lg object-cover opacity-90"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="Total Employees"
+          value={stats.total_employees || 0}
+          icon={UserIconSolid}
+          color="blue"
+          subtitle="Active employees"
+        />
+        <StatsCard
+          title="Present Today"
+          value={stats.present || 0}
+          icon={CheckCircleIconSolid}
+          color="green"
+          subtitle={`${stats.present_percentage || 0}% attendance`}
+        />
+        <StatsCard
+          title="Total Logs"
+          value={attendanceLogStats.total_logs || 0}
+          icon={ClipboardDocumentListIcon}
+          color="indigo"
+          subtitle="Attendance records"
+        />
+        <StatsCard
+          title="Active Devices"
+          value={attendanceLogStats.unique_devices || 0}
+          icon={ComputerDesktopIconSolid}
+          color="purple"
+          subtitle="Biometric devices"
+        />
+      </div>
+
+      {/* Sync Status */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-900">Sync Status</h3>
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+            <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+            Connected
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <p className="text-2xl font-bold text-gray-900">{syncStatus.total_employees || 0}</p>
+            <p className="text-sm text-gray-600">Employees Synced</p>
+          </div>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <p className="text-2xl font-bold text-gray-900">{syncStatus.total_attendance_logs || 0}</p>
+            <p className="text-sm text-gray-600">Attendance Logs</p>
+          </div>
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm font-medium text-gray-900">Last Sync</p>
+            <p className="text-sm text-gray-600">
+              {syncStatus.last_sync ? new Date(syncStatus.last_sync).toLocaleString() : 'Never'}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Stats Card Component
+const StatsCard = ({ title, value, icon: Icon, color, subtitle }) => {
+  const colorClasses = {
+    blue: 'bg-blue-50 text-blue-600',
+    green: 'bg-green-50 text-green-600',
+    indigo: 'bg-indigo-50 text-indigo-600',
+    purple: 'bg-purple-50 text-purple-600',
+    red: 'bg-red-50 text-red-600',
+    yellow: 'bg-yellow-50 text-yellow-600'
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {cards.map((card, index) => (
-        <div key={index} className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className={`p-3 rounded-lg ${card.bgColor}`}>
-                  <card.icon className={`h-6 w-6 ${card.iconColor}`} />
-                </div>
+    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-600">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-1">{value.toLocaleString()}</p>
+          <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
+        </div>
+        <div className={`p-3 rounded-lg ${colorClasses[color]}`}>
+          <Icon className="h-6 w-6" />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Employees Tab Component
+const EmployeesTab = ({ employees, searchQuery, setSearchQuery, onEmployeeSelect }) => {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Employee Management</h2>
+          <p className="text-gray-600">Manage and view employee information</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search employees..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Employee Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {employees.map(employee => (
+          <EmployeeCard
+            key={employee.id}
+            employee={employee}
+            onSelect={onEmployeeSelect}
+          />
+        ))}
+      </div>
+
+      {employees.length === 0 && (
+        <div className="text-center py-12">
+          <UsersIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">No employees found</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Employee Card Component
+const EmployeeCard = ({ employee, onSelect }) => {
+  const getStatusColor = (status) => {
+    switch (status.toLowerCase()) {
+      case 'present':
+        return 'bg-green-100 text-green-800';
+      case 'absent':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200 hover:shadow-md transition-shadow">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center">
+          <div className="h-12 w-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+            <UserIcon className="h-6 w-6 text-white" />
+          </div>
+          <div className="ml-3">
+            <h3 className="text-lg font-semibold text-gray-900">{employee.name}</h3>
+            <p className="text-sm text-gray-600">ID: {employee.employee_id}</p>
+          </div>
+        </div>
+        <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(employee.attendance_status)}`}>
+          {employee.attendance_status}
+        </span>
+      </div>
+      
+      <div className="space-y-2">
+        <div className="flex items-center text-sm text-gray-600">
+          <BuildingOfficeIcon className="h-4 w-4 mr-2" />
+          {employee.department}
+        </div>
+        <div className="flex items-center text-sm text-gray-600">
+          <MapPinIcon className="h-4 w-4 mr-2" />
+          {employee.site}
+        </div>
+      </div>
+      
+      <button
+        onClick={() => onSelect(employee)}
+        className="w-full mt-4 bg-indigo-50 text-indigo-600 py-2 px-4 rounded-lg hover:bg-indigo-100 transition-colors text-sm font-medium"
+      >
+        View Details
+      </button>
+    </div>
+  );
+};
+
+// Attendance Tab Component
+const AttendanceTab = ({ attendanceLogs }) => {
+  const [viewMode, setViewMode] = useState('list');
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Attendance Logs</h2>
+          <p className="text-gray-600">Real-time attendance tracking from biometric devices</p>
+        </div>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <ListBulletIcon className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-2 rounded-lg ${viewMode === 'table' ? 'bg-indigo-100 text-indigo-600' : 'text-gray-400 hover:text-gray-600'}`}
+          >
+            <TableCellsIcon className="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Attendance Log List */}
+      {viewMode === 'list' && (
+        <div className="space-y-4">
+          {attendanceLogs.map(log => (
+            <AttendanceLogCard key={log.id} log={log} />
+          ))}
+        </div>
+      )}
+
+      {/* Attendance Log Table */}
+      {viewMode === 'table' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Device</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Direction</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {attendanceLogs.map(log => (
+                  <tr key={log.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      User {log.user_id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      Device {log.device_id}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {log.log_date}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        log.direction === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}>
+                        {log.direction}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {log.is_approved === 1 ? 'Approved' : 'Pending'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {attendanceLogs.length === 0 && (
+        <div className="text-center py-12">
+          <ClipboardDocumentListIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-500">No attendance logs found</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Attendance Log Card Component
+const AttendanceLogCard = ({ log }) => {
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+            log.direction === 'in' ? 'bg-green-100' : 'bg-red-100'
+          }`}>
+            {log.direction === 'in' ? (
+              <CheckCircleIcon className="h-6 w-6 text-green-600" />
+            ) : (
+              <XCircleIcon className="h-6 w-6 text-red-600" />
+            )}
+          </div>
+          <div className="ml-4">
+            <h3 className="text-lg font-semibold text-gray-900">User {log.user_id}</h3>
+            <p className="text-sm text-gray-600">Device {log.device_id}</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-medium text-gray-900">{log.log_date}</p>
+          <p className="text-sm text-gray-600">{log.download_date}</p>
+        </div>
+      </div>
+      
+      <div className="mt-4 grid grid-cols-2 gap-4">
+        <div>
+          <p className="text-sm font-medium text-gray-700">Direction</p>
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+            log.direction === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          }`}>
+            {log.direction}
+          </span>
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-700">Status</p>
+          <span className="text-sm text-gray-600">
+            {log.is_approved === 1 ? 'Approved' : 'Pending'}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Analytics Tab Component
+const AnalyticsTab = ({ stats, attendanceLogStats }) => {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Analytics & Insights</h2>
+          <p className="text-gray-600">Detailed analytics and performance metrics</p>
+        </div>
+        <div className="hidden md:block">
+          <img 
+            src="https://images.unsplash.com/photo-1608222351212-18fe0ec7b13b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDJ8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMGFuYWx5dGljc3xlbnwwfHx8fDE3NTI4MjE2MDd8MA&ixlib=rb-4.1.0&q=85"
+            alt="Analytics Dashboard"
+            className="w-24 h-24 rounded-lg object-cover"
+          />
+        </div>
+      </div>
+
+      {/* Analytics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Attendance Rate</h3>
+            <ChartPieIcon className="h-6 w-6 text-indigo-600" />
+          </div>
+          <div className="text-center">
+            <p className="text-4xl font-bold text-indigo-600">{stats.present_percentage || 0}%</p>
+            <p className="text-sm text-gray-600">Overall attendance</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Device Activity</h3>
+            <ComputerDesktopIcon className="h-6 w-6 text-purple-600" />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Check-ins</span>
+              <span className="text-sm font-medium text-gray-900">{attendanceLogStats.in_logs || 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Check-outs</span>
+              <span className="text-sm font-medium text-gray-900">{attendanceLogStats.out_logs || 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Active Devices</span>
+              <span className="text-sm font-medium text-gray-900">{attendanceLogStats.unique_devices || 0}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">System Health</h3>
+            <SignalIcon className="h-6 w-6 text-green-600" />
+          </div>
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Total Records</span>
+              <span className="text-sm font-medium text-gray-900">{attendanceLogStats.total_logs || 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Unique Users</span>
+              <span className="text-sm font-medium text-gray-900">{attendanceLogStats.unique_users || 0}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-gray-600">Recent Activity</span>
+              <span className="text-sm font-medium text-gray-900">{attendanceLogStats.recent_activity || 0}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Attendance Overview</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Present</span>
+              <span className="text-sm font-medium text-green-600">{stats.present || 0}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-green-500 h-2 rounded-full" 
+                style={{ width: `${stats.present_percentage || 0}%` }}
+              ></div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Absent</span>
+              <span className="text-sm font-medium text-red-600">{stats.absent || 0}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-red-500 h-2 rounded-full" 
+                style={{ width: `${stats.absent_percentage || 0}%` }}
+              ></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Device Usage</h3>
+          <div className="space-y-4">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-indigo-600">{attendanceLogStats.unique_devices || 0}</p>
+              <p className="text-sm text-gray-600">Active Devices</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <p className="text-lg font-semibold text-green-600">{attendanceLogStats.in_logs || 0}</p>
+                <p className="text-xs text-gray-600">Check-ins</p>
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">
-                    {card.title}
-                  </dt>
-                  <dd className="text-2xl font-semibold text-gray-900">
-                    {card.value}
-                  </dd>
-                </dl>
+              <div className="text-center p-3 bg-red-50 rounded-lg">
+                <p className="text-lg font-semibold text-red-600">{attendanceLogStats.out_logs || 0}</p>
+                <p className="text-xs text-gray-600">Check-outs</p>
               </div>
             </div>
           </div>
         </div>
-      ))}
-    </div>
-  );
-};
-
-// Employee Search Component
-const EmployeeSearch = ({ onSearch, onFilterChange, filters }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    onSearch(searchTerm);
-  };
-
-  return (
-    <div className="bg-white shadow rounded-lg p-6">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-        <form onSubmit={handleSearch} className="flex-1 lg:mr-4">
-          <div className="relative">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search employees by name or ID..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-        </form>
-        
-        <div className="flex flex-wrap gap-4">
-          <select
-            value={filters.department}
-            onChange={(e) => onFilterChange('department', e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Departments</option>
-            <option value="HR">HR</option>
-            <option value="IT">IT</option>
-            <option value="Finance">Finance</option>
-            <option value="Engineering">Engineering</option>
-            <option value="Marketing">Marketing</option>
-          </select>
-          
-          <select
-            value={filters.site}
-            onChange={(e) => onFilterChange('site', e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Sites</option>
-            <option value="Head Office">Head Office</option>
-            <option value="Remote">Remote</option>
-            <option value="Branch Office">Branch Office</option>
-          </select>
-          
-          <select
-            value={filters.attendance_status}
-            onChange={(e) => onFilterChange('attendance_status', e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Status</option>
-            <option value="Present">Present</option>
-            <option value="Absent">Absent</option>
-          </select>
-        </div>
       </div>
     </div>
   );
 };
 
-// Employee List Component
-const EmployeeList = ({ employees, onSelectEmployee, loading }) => {
-  if (loading) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <ArrowPathIcon className="h-8 w-8 text-gray-400 animate-spin mx-auto" />
-            <p className="mt-2 text-gray-500">Loading employees...</p>
-          </div>
+// Devices Tab Component
+const DevicesTab = ({ attendanceLogStats }) => {
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Device Management</h2>
+          <p className="text-gray-600">Monitor and manage biometric devices</p>
         </div>
       </div>
-    );
-  }
 
-  if (!employees || employees.length === 0) {
-    return (
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="text-center">
-          <UsersIcon className="h-12 w-12 text-gray-400 mx-auto" />
-          <p className="mt-2 text-gray-500">No employees found</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="bg-white shadow rounded-lg overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">Employee List</h3>
-      </div>
-      
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Employee
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Department
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Site
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {employees.map((employee) => (
-              <tr key={employee.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                        <UserIcon className="h-5 w-5 text-gray-500" />
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {employee.name || 'N/A'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        ID: {employee.employee_id || 'N/A'}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-900">{employee.department || 'N/A'}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <MapPinIcon className="h-4 w-4 text-gray-400 mr-2" />
-                    <span className="text-sm text-gray-900">{employee.site || 'N/A'}</span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    employee.attendance_status === 'Present' 
-                      ? 'bg-green-100 text-green-800' 
-                      : employee.attendance_status === 'Absent'
-                      ? 'bg-red-100 text-red-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {employee.attendance_status || 'N/A'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button
-                    onClick={() => onSelectEmployee(employee)}
-                    className="text-blue-600 hover:text-blue-900"
-                  >
-                    <EyeIcon className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
-
-// Employee Details Modal
-const EmployeeDetailsModal = ({ employee, onClose }) => {
-  if (!employee) return null;
-
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
-        <div className="mt-3">
+      {/* Device Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Employee Details</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Total Devices</h3>
+            <ComputerDesktopIcon className="h-6 w-6 text-indigo-600" />
+          </div>
+          <p className="text-3xl font-bold text-indigo-600">{attendanceLogStats.unique_devices || 0}</p>
+          <p className="text-sm text-gray-600">Active biometric devices</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Online Status</h3>
+            <WifiIcon className="h-6 w-6 text-green-600" />
+          </div>
+          <p className="text-3xl font-bold text-green-600">{attendanceLogStats.unique_devices || 0}</p>
+          <p className="text-sm text-gray-600">Devices online</p>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
+            <ClockIcon className="h-6 w-6 text-blue-600" />
+          </div>
+          <p className="text-3xl font-bold text-blue-600">{attendanceLogStats.recent_activity || 0}</p>
+          <p className="text-sm text-gray-600">Records today</p>
+        </div>
+      </div>
+
+      {/* Device Status */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-900">Device Status</h3>
+        </div>
+        <div className="p-6">
+          <div className="text-center py-8">
+            <ComputerDesktopIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-2">All devices are operating normally</p>
+            <p className="text-sm text-gray-500">
+              {attendanceLogStats.unique_devices || 0} devices connected and monitoring attendance
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Employee Detail Modal Component
+const EmployeeDetailModal = ({ employee, onClose }) => {
+  const [attendanceLogs, setAttendanceLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEmployeeAttendance = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${API}/attendance-logs?user_id=${employee.employee_id}&limit=20`);
+        setAttendanceLogs(response.data.logs || []);
+      } catch (error) {
+        console.error('Error fetching employee attendance:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEmployeeAttendance();
+  }, [employee.employee_id]);
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="h-12 w-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
+                <UserIcon className="h-6 w-6 text-white" />
+              </div>
+              <div className="ml-3">
+                <h2 className="text-xl font-bold text-gray-900">{employee.name}</h2>
+                <p className="text-sm text-gray-600">Employee ID: {employee.employee_id}</p>
+              </div>
+            </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <XCircleIcon className="h-6 w-6 text-gray-400" />
             </button>
           </div>
-          
+        </div>
+
+        {/* Employee Details */}
+        <div className="p-6 space-y-6">
+          {/* Basic Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="flex items-center space-x-3">
-                <div className="h-16 w-16 rounded-full bg-gray-300 flex items-center justify-center">
-                  <UserIcon className="h-8 w-8 text-gray-500" />
-                </div>
-                <div>
-                  <h4 className="text-xl font-semibold text-gray-900">{employee.name || 'N/A'}</h4>
-                  <p className="text-sm text-gray-500">ID: {employee.employee_id || 'N/A'}</p>
-                </div>
-              </div>
-              
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Basic Information</h3>
               <div className="space-y-3">
+                <div className="flex items-center">
+                  <UserIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Name</p>
+                    <p className="font-medium text-gray-900">{employee.name}</p>
+                  </div>
+                </div>
                 <div className="flex items-center">
                   <BuildingOfficeIcon className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Department</p>
-                    <p className="text-sm text-gray-600">{employee.department || 'N/A'}</p>
+                    <p className="text-sm text-gray-600">Department</p>
+                    <p className="font-medium text-gray-900">{employee.department}</p>
                   </div>
                 </div>
-                
                 <div className="flex items-center">
                   <MapPinIcon className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Site</p>
-                    <p className="text-sm text-gray-600">{employee.site || 'N/A'}</p>
+                    <p className="text-sm text-gray-600">Site</p>
+                    <p className="font-medium text-gray-900">{employee.site}</p>
                   </div>
                 </div>
-                
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Status</h3>
+              <div className="space-y-3">
                 <div className="flex items-center">
-                  <ClockIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <CheckCircleIcon className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">Attendance Status</p>
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      employee.attendance_status === 'Present' 
-                        ? 'bg-green-100 text-green-800' 
-                        : employee.attendance_status === 'Absent'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
+                    <p className="text-sm text-gray-600">Attendance Status</p>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      employee.attendance_status === 'Present' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                     }`}>
-                      {employee.attendance_status || 'N/A'}
+                      {employee.attendance_status}
                     </span>
                   </div>
                 </div>
-              </div>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h5 className="text-sm font-medium text-gray-900 mb-2">Additional Information</h5>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <p><strong>Created:</strong> {employee.created_at ? new Date(employee.created_at).toLocaleDateString() : 'N/A'}</p>
-                  <p><strong>Updated:</strong> {employee.updated_at ? new Date(employee.updated_at).toLocaleDateString() : 'N/A'}</p>
+                <div className="flex items-center">
+                  <CalendarDaysIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Last Updated</p>
+                    <p className="font-medium text-gray-900">
+                      {new Date(employee.updated_at).toLocaleDateString()}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-          
-          <div className="mt-6 flex justify-end">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 bg-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-            >
-              Close
-            </button>
+
+          {/* Attendance History */}
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Recent Attendance</h3>
+            {loading ? (
+              <div className="text-center py-8">
+                <ArrowPathIcon className="h-8 w-8 text-indigo-500 animate-spin mx-auto mb-2" />
+                <p className="text-gray-600">Loading attendance records...</p>
+              </div>
+            ) : attendanceLogs.length > 0 ? (
+              <div className="space-y-3 max-h-60 overflow-y-auto">
+                {attendanceLogs.map(log => (
+                  <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center">
+                      {log.direction === 'in' ? (
+                        <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3" />
+                      ) : (
+                        <XCircleIcon className="h-5 w-5 text-red-500 mr-3" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {log.direction === 'in' ? 'Check In' : 'Check Out'}
+                        </p>
+                        <p className="text-xs text-gray-600">Device {log.device_id}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-900">{log.log_date}</p>
+                      <p className="text-xs text-gray-600">{log.download_date}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <ClipboardDocumentListIcon className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-600">No attendance records found</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
-  );
-};
-
-// Main Dashboard Component
-const Dashboard = () => {
-  const [employees, setEmployees] = useState([]);
-  const [stats, setStats] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
-  const [filters, setFilters] = useState({
-    department: '',
-    site: '',
-    attendance_status: ''
-  });
-  const { user, logout } = useAuth();
-
-  const fetchEmployees = async (searchTerm = '') => {
-    try {
-      setLoading(true);
-      const params = new URLSearchParams({
-        limit: '100',
-        skip: '0',
-        ...(searchTerm && { search: searchTerm }),
-        ...(filters.department && { department: filters.department }),
-        ...(filters.site && { site: filters.site }),
-        ...(filters.attendance_status && { attendance_status: filters.attendance_status })
-      });
-
-      const response = await axios.get(`${API}/employees?${params}`);
-      setEmployees(response.data.employees || []);
-    } catch (error) {
-      console.error('Error fetching employees:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const response = await axios.get(`${API}/stats/attendance`);
-      setStats(response.data);
-    } catch (error) {
-      console.error('Error fetching stats:', error);
-    }
-  };
-
-  const handleSync = async () => {
-    try {
-      setSyncing(true);
-      await axios.post(`${API}/sync/google-sheets`);
-      await fetchEmployees();
-      await fetchStats();
-    } catch (error) {
-      console.error('Error syncing data:', error);
-    } finally {
-      setSyncing(false);
-    }
-  };
-
-  const handleSearch = (searchTerm) => {
-    fetchEmployees(searchTerm);
-  };
-
-  const handleFilterChange = (filterType, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterType]: value
-    }));
-  };
-
-  useEffect(() => {
-    fetchEmployees();
-    fetchStats();
-  }, []);
-
-  useEffect(() => {
-    fetchEmployees();
-  }, [filters]);
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <DashboardHeader 
-        user={user} 
-        onLogout={logout} 
-        onSync={handleSync} 
-        syncing={syncing}
-      />
-      
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 py-6 sm:px-0">
-          <div className="space-y-6">
-            {/* Statistics Cards */}
-            <StatisticsCards stats={stats} />
-            
-            {/* Search and Filters */}
-            <EmployeeSearch 
-              onSearch={handleSearch}
-              onFilterChange={handleFilterChange}
-              filters={filters}
-            />
-            
-            {/* Employee List */}
-            <EmployeeList 
-              employees={employees}
-              onSelectEmployee={setSelectedEmployee}
-              loading={loading}
-            />
-          </div>
-        </div>
-      </main>
-      
-      {/* Employee Details Modal */}
-      {selectedEmployee && (
-        <EmployeeDetailsModal 
-          employee={selectedEmployee}
-          onClose={() => setSelectedEmployee(null)}
-        />
-      )}
     </div>
   );
 };
@@ -723,21 +1116,27 @@ const App = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <ArrowPathIcon className="h-8 w-8 text-gray-400 animate-spin mx-auto" />
-          <p className="mt-2 text-gray-500">Loading...</p>
+          <ArrowPathIcon className="h-12 w-12 text-indigo-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
   }
 
-  return user ? <Dashboard /> : <LoginPage />;
+  return (
+    <div className="App">
+      {user ? <Dashboard /> : <Login />}
+    </div>
+  );
 };
 
-// Main App with Auth Provider
-const AppWithAuth = () => (
-  <AuthProvider>
-    <App />
-  </AuthProvider>
-);
+// Root App with Auth Provider
+const RootApp = () => {
+  return (
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+};
 
-export default AppWithAuth;
+export default RootApp;
