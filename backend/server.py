@@ -443,6 +443,9 @@ class GoogleSheetsService:
             if not recent_logs:
                 return None
             
+            # Convert ObjectId to string
+            recent_logs = convert_object_id(recent_logs)
+            
             # Calculate current attendance status
             today = datetime.now().strftime("%m/%d/%Y")
             today_logs = [log for log in recent_logs if log.get("download_date") == today]
