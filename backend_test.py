@@ -901,6 +901,14 @@ class GoogleSheetsEmployeeSystemTester:
         self.test_attendance_stats()
         self.test_department_stats()
         self.test_site_stats()
+        self.test_daily_attendance_stats()
+        
+        print("\n" + "=" * 50)
+        print("TESTING ADVANCED EMPLOYEE FEATURES")
+        print("=" * 50)
+        self.test_employee_search_by_code()
+        self.test_employee_suggestions()
+        self.test_employees_date_wise()
         
         # Summary
         print("\n" + "=" * 80)
