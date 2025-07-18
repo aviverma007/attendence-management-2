@@ -116,6 +116,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ COMPREHENSIVE GOOGLE SHEETS INTEGRATION COMPLETED: Successfully integrated with Google Sheets API and synced 25,941 employees from Excel sheet. All 14 backend tests passed (100% success rate). Features working: Google Sheets sync, employee CRUD operations, search functionality, authentication, statistics APIs, and real-time data access."
+      - working: true
+        agent: "testing"
+        comment: "✅ NEW ATTENDANCE LOGS INTEGRATION FULLY TESTED: Comprehensive testing of updated Google Sheets integration completed with 100% success rate (22/22 tests passed). Successfully synced 25,941 attendance logs and 766 employees from new Google Sheets structure. All new endpoints working: /api/sync/attendance-logs, /api/attendance-logs (with filtering by user_id, device_id, date ranges), /api/attendance-logs/stats, enhanced /api/sync/status. Data integrity verified between attendance logs and employees. Authentication properly enforced on all endpoints. Real-time data processing from biometric devices working perfectly."
         
   - task: "Employee Management API with Enhanced Features"
     implemented: true
@@ -128,6 +131,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ ENHANCED EMPLOYEE MANAGEMENT API VERIFIED: Full CRUD operations working perfectly with Google Sheets integration. Search functionality by name, department, site, and attendance status implemented. Employee data fields: Employee ID, Name, Department, Attendance Status, Site. All endpoints responding correctly with proper authentication."
+      - working: true
+        agent: "testing"
+        comment: "✅ EMPLOYEE MANAGEMENT WITH ATTENDANCE LOGS INTEGRATION VERIFIED: Employee records now properly derived from attendance logs. Data integrity confirmed with employee IDs matching attendance log user IDs. Employee management APIs working seamlessly with new attendance log data structure. All CRUD operations, search, and filtering functionality verified working."
         
   - task: "Statistics and Analytics APIs"
     implemented: true
@@ -140,6 +146,9 @@ backend:
       - working: true
         agent: "testing"
         comment: "✅ STATISTICS APIs WORKING PERFECTLY: Attendance stats, department-wise stats, and site-wise stats endpoints all functional. Provides comprehensive analytics for dashboard visualization with percentage calculations and detailed breakdowns."
+      - working: true
+        agent: "testing"
+        comment: "✅ ENHANCED STATISTICS WITH ATTENDANCE LOGS VERIFIED: New attendance log statistics endpoint (/api/attendance-logs/stats) working perfectly. Provides comprehensive analytics: 25,941 total logs, 766 unique users, 13 unique devices, in/out log counts, and recent activity tracking. All statistics APIs responding correctly with proper data aggregation from both employees and attendance logs collections."
 
 frontend:
   - task: "Enhanced Login Page Design"
