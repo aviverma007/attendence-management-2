@@ -268,42 +268,21 @@ class GoogleSheetsService:
         # Sort logs by time
         logs_for_day.sort(key=lambda x: x.get('log_date', ''))
         
-        first_punch = logs_for_day[0]
-        last_punch = logs_for_day[-1]
+        # Check if there are any "in" punches - if yes, employee is Present
+        in_punches = [log for log in logs_for_day if log.get('c1', '').lower() == 'in']
         
-        # Parse first punch time
-        first_punch_time = first_punch.get('log_date', '')
-        
-        if not first_punch_time:
-            return "Absent"
-        
-        try:
-            # Calculate actual working hours
-            total_hours = self.calculate_working_hours(logs_for_day)
-            
-            # Extract time from log_date (format: "5:23:24 PM")
-            time_str = first_punch_time.strip()
-            if 'AM' in time_str or 'PM' in time_str:
-                from datetime import datetime
-                time_obj = datetime.strptime(time_str, "%I:%M:%S %p")
-                hour = time_obj.hour
-                minute = time_obj.minute
-                
-                # Simplified attendance logic - only Present or Absent
-                # If first punch is after 2 PM, mark as Absent
-                if hour >= 14:  # After 2 PM
-                    return "Absent"
-                
-                # If first punch is before 2 PM and has reasonable working hours
-                if total_hours >= 4:  # At least 4 hours of work
-                    return "Present"
-                else:
-                    return "Absent"
+        if in_punches:
+            # Employee has at least one "in" punch, so they are Present
+            return "Present"
+        else:
+            # No "in" punches, check if there are any logs at all
+            if logs_for_day:
+                # Has some logs but no "in" punches, might be all "out" punches
+                # This could mean they came in earlier (before this data) and only logged out
+                # Let's be lenient and mark as Present if they have any activity
+                return "Present"
             else:
-                # Default for unclear time format
-                return "Present" if total_hours >= 4 else "Absent"
-        except:
-            return "Present"  # Default if parsing fails
+                return "Absent"
     
     def calculate_working_hours(self, logs_for_day):
         """Calculate actual working hours from punch logs"""
