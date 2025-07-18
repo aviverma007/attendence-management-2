@@ -962,6 +962,11 @@ const DashboardHeader = ({
             <div className="text-sm text-gray-500">
               Last updated: {realTimeData.lastUpdate.toLocaleTimeString()}
             </div>
+            {syncStatus.last_sync && (
+              <div className="text-sm text-gray-500">
+                Sync: {new Date(syncStatus.last_sync).toLocaleTimeString()}
+              </div>
+            )}
           </div>
 
           {/* Right side */}
