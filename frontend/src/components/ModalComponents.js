@@ -225,8 +225,8 @@ const EmployeeDetailsTab = ({ employee }) => {
 
       {/* Current Status */}
       <div className="bg-gray-50 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Status</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Attendance</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="text-center p-4 bg-white rounded-lg">
             <p className="text-sm text-gray-600 mb-1">Attendance Status</p>
             <span className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -238,16 +238,57 @@ const EmployeeDetailsTab = ({ employee }) => {
             </span>
           </div>
           <div className="text-center p-4 bg-white rounded-lg">
-            <p className="text-sm text-gray-600 mb-1">Last Check-in</p>
+            <p className="text-sm text-gray-600 mb-1">First IN</p>
             <p className="font-medium text-gray-900">
-              {employee.recent_logs?.[0]?.log_date || 'N/A'}
+              {employeeDetails?.today_punch_details?.first_in || 'N/A'}
+            </p>
+          </div>
+          <div className="text-center p-4 bg-white rounded-lg">
+            <p className="text-sm text-gray-600 mb-1">Last OUT</p>
+            <p className="font-medium text-gray-900">
+              {employeeDetails?.today_punch_details?.last_out || 'N/A'}
             </p>
           </div>
           <div className="text-center p-4 bg-white rounded-lg">
             <p className="text-sm text-gray-600 mb-1">Working Hours</p>
-            <p className="font-medium text-gray-900">8:00 AM - 5:00 PM</p>
+            <p className="font-medium text-gray-900">
+              {employeeDetails?.today_punch_details?.working_hours 
+                ? `${employeeDetails.today_punch_details.working_hours}h` 
+                : 'N/A'}
+            </p>
           </div>
         </div>
+        
+        {/* Punch Details */}
+        {employeeDetails?.today_punch_details?.punch_details && employeeDetails.today_punch_details.punch_details.length > 0 && (
+          <div className="mt-6">
+            <h4 className="text-md font-semibold text-gray-900 mb-3">Today's Punch Details</h4>
+            <div className="space-y-2">
+              {employeeDetails.today_punch_details.punch_details.map((punch, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      punch.type === 'IN' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {punch.type}
+                    </span>
+                    <span className="font-medium text-gray-900">{punch.time}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">{punch.location}</p>
+                    <p className="text-xs text-gray-500">Device: {punch.device_id}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-blue-800">Total Punches: {employeeDetails.today_punch_details.total_punches}</span>
+                <span className="text-blue-800">IN: {employeeDetails.today_punch_details.in_punches || 0} | OUT: {employeeDetails.today_punch_details.out_punches || 0}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Contact Information */}
