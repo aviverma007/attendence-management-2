@@ -622,17 +622,17 @@ class GoogleSheetsEmployeeSystemTester:
             response = self.session.get(f"{self.base_url}/attendance-logs/stats")
             if response.status_code == 200:
                 stats = response.json()
-                required_fields = ["total_logs", "unique_users", "unique_devices", "in_logs", "out_logs", "recent_activity"]
+                required_fields = ["total_logs", "unique_users", "unique_devices", "in_logs", "out_logs", "recent_logs"]
                 if all(field in stats for field in required_fields):
                     total_logs = stats["total_logs"]
                     unique_users = stats["unique_users"]
                     unique_devices = stats["unique_devices"]
                     in_logs = stats["in_logs"]
                     out_logs = stats["out_logs"]
-                    recent_activity = stats["recent_activity"]
+                    recent_logs = stats["recent_logs"]
                     
                     if total_logs >= 0 and isinstance(unique_users, int) and isinstance(unique_devices, int):
-                        self.log_test("Attendance Logs Stats", True, f"Stats retrieved: {total_logs} total logs, {unique_users} users, {unique_devices} devices", f"In: {in_logs}, Out: {out_logs}, Recent: {recent_activity}")
+                        self.log_test("Attendance Logs Stats", True, f"Stats retrieved: {total_logs} total logs, {unique_users} users, {unique_devices} devices", f"In: {in_logs}, Out: {out_logs}, Recent: {recent_logs}")
                         return True
                     else:
                         self.log_test("Attendance Logs Stats", False, "Invalid statistics values", stats)
