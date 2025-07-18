@@ -624,7 +624,11 @@ async def login(user_credentials: UserLogin):
         )
     
     access_token = create_access_token(data={"sub": user["username"]})
-    return {"access_token": access_token, "token_type": "bearer", "user": convert_object_id(user)}
+    
+    # Convert ObjectId to string for JSON serialization
+    user_data = {k: str(v) if k == "_id" else v for k, v in user.items()}
+    
+    return {"access_token": access_token, "token_type": "bearer", "user": user_data}
 
 # Employee routes
 @api_router.get("/employees")
