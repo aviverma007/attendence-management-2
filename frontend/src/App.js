@@ -279,6 +279,9 @@ const Dashboard = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [syncLoading, setSyncLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [employeeSearchLoading, setEmployeeSearchLoading] = useState(false);
+  const [allEmployees, setAllEmployees] = useState([]);
+  const [totalEmployeeCount, setTotalEmployeeCount] = useState(0);
 
   useEffect(() => {
     fetchDashboardData();
