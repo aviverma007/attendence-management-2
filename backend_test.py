@@ -86,9 +86,10 @@ class GoogleSheetsEmployeeSystemTester:
             response = self.session.post(f"{self.base_url}/sync/google-sheets")
             if response.status_code == 200:
                 data = response.json()
-                if data.get("status") == "success" and "count" in data:
-                    count = data["count"]
-                    self.log_test("Google Sheets Sync", True, f"Successfully synced {count} employees from Google Sheets", f"Message: {data.get('message', 'N/A')}")
+                if data.get("status") == "success" and ("employee_count" in data or "count" in data):
+                    employee_count = data.get("employee_count", data.get("count", 0))
+                    log_count = data.get("log_count", 0)
+                    self.log_test("Google Sheets Sync", True, f"Successfully synced {employee_count} employees and {log_count} attendance logs from Google Sheets", f"Message: {data.get('message', 'N/A')}")
                     return True
                 else:
                     self.log_test("Google Sheets Sync", False, "Sync failed or unexpected response", data)
