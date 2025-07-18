@@ -155,7 +155,7 @@ class EmployeeDateWiseData(BaseModel):
 
 class GoogleSheetsService:
     def __init__(self):
-        self.SHEET_URL = 'https://docs.google.com/spreadsheets/d/1WEXvP_vPDq2_H_HwGaUuVaVpXXfgZTjJyWVYhwlBfks/edit#gid=0'
+        self.SHEET_URL = 'https://docs.google.com/spreadsheets/d/10rKRL9trrc2QKU5OfGun1A9fpEi0oovZ/edit?rtpof=true&sd=true&gid=959405682#gid=959405682'
         self.credentials = None
         self.gc = None
         self.sheet = None
