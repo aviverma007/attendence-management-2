@@ -968,7 +968,7 @@ const DashboardHeader = ({
           <div className="flex items-center space-x-4">
             {/* Google Sheets Sync Button */}
             <button
-              onClick={syncGoogleSheets}
+              onClick={onSyncGoogleSheets}
               disabled={syncLoading}
               className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
             >
