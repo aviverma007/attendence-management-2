@@ -401,6 +401,7 @@ const Dashboard = () => {
             {[
               { id: 'overview', label: 'Overview', icon: HomeIcon },
               { id: 'employees', label: 'Employees', icon: UsersIcon },
+              { id: 'datewise', label: 'Date-wise Data', icon: CalendarDaysIcon },
               { id: 'attendance', label: 'Attendance Logs', icon: ClipboardDocumentListIcon },
               { id: 'analytics', label: 'Analytics', icon: ChartBarIcon },
               { id: 'devices', label: 'Devices', icon: ComputerDesktopIcon }
