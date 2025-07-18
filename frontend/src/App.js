@@ -1510,7 +1510,6 @@ const DailyAttendanceChart = ({ dailyStats }) => {
   const data = [
     { label: 'Present', value: dailyStats.present || 0, color: 'bg-green-500' },
     { label: 'Absent', value: dailyStats.absent || 0, color: 'bg-red-500' },
-    { label: 'Half Day', value: dailyStats.half_day || 0, color: 'bg-yellow-500' },
     { label: 'On Leave', value: dailyStats.on_leave || 0, color: 'bg-blue-500' }
   ];
 
