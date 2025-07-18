@@ -801,6 +801,55 @@ class GoogleSheetsEmployeeSystemTester:
         except Exception as e:
             self.log_test("Employees Date-wise", False, f"Request error: {str(e)}")
             return False
+    
+    def test_authentication_required(self):
+        """Test that all endpoints require authentication"""
+        try:
+            # Create a session without authentication
+            unauth_session = requests.Session()
+            
+            # Test GET endpoints that should require authentication
+            get_endpoints = [
+                "/employees",
+                "/attendance-logs",
+                "/attendance-logs/stats",
+                "/stats/attendance",
+                "/sync/status"
+            ]
+            
+            # Test POST endpoints that should require authentication
+            post_endpoints = [
+                "/sync/google-sheets"
+            ]
+            
+            all_protected = True
+            
+            # Test GET endpoints
+            for endpoint in get_endpoints:
+                response = unauth_session.get(f"{self.base_url}{endpoint}")
+                if response.status_code != 401 and response.status_code != 403:
+                    self.log_test("Authentication Required", False, f"GET endpoint {endpoint} not properly protected (status: {response.status_code})")
+                    all_protected = False
+                    break
+            
+            # Test POST endpoints
+            for endpoint in post_endpoints:
+                response = unauth_session.post(f"{self.base_url}{endpoint}")
+                if response.status_code != 401 and response.status_code != 403:
+                    self.log_test("Authentication Required", False, f"POST endpoint {endpoint} not properly protected (status: {response.status_code})")
+                    all_protected = False
+                    break
+            
+            if all_protected:
+                total_endpoints = len(get_endpoints) + len(post_endpoints)
+                self.log_test("Authentication Required", True, f"All {total_endpoints} endpoints properly require authentication")
+                return True
+            else:
+                return False
+                
+        except Exception as e:
+            self.log_test("Authentication Required", False, f"Request error: {str(e)}")
+            return False
         """Test that all new endpoints require authentication"""
         try:
             # Create a session without authentication
