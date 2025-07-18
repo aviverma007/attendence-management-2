@@ -293,6 +293,21 @@ const Dashboard = () => {
     }
   }, [selectedDate]);
 
+  // Fetch employees based on search query
+  const fetchEmployees = async (search = '', limit = 1000) => {
+    try {
+      setEmployeeSearchLoading(true);
+      const searchParam = search ? `&search=${encodeURIComponent(search)}` : '';
+      const response = await axios.get(`${API}/employees?limit=${limit}${searchParam}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching employees:', error);
+      return { employees: [], total_count: 0 };
+    } finally {
+      setEmployeeSearchLoading(false);
+    }
+  };
+
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
