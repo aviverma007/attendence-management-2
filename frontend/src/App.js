@@ -648,8 +648,13 @@ const OverviewTab = ({ stats, dailyStats, attendanceLogStats, syncStatus, select
               placeholder="Search by employee code..."
               value={employeeSearch}
               onChange={(e) => setEmployeeSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
+            {searchLoading && (
+              <div className="absolute right-3 top-3">
+                <ArrowPathIcon className="h-5 w-5 text-gray-400 animate-spin" />
+              </div>
+            )}
           </div>
           
           {/* Suggestions Dropdown */}
