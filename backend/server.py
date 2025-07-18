@@ -375,28 +375,8 @@ class GoogleSheetsService:
     async def get_daily_attendance_stats(self, date):
         """Get daily attendance statistics for a specific date"""
         try:
-            # Parse date and create query
-            date_obj = datetime.strptime(date, "%m/%d/%Y")
-            
-            # Try multiple date formats to handle format inconsistencies
-            date_formats = [
-                date_obj.strftime("%m/%d/%Y"),  # 07/18/2025
-                date_obj.strftime("%-m/%-d/%Y") if hasattr(date_obj, 'strftime') else date_obj.strftime("%m/%d/%Y").lstrip('0').replace('/0', '/'),  # 7/18/2025
-                date_obj.strftime("%m-%d-%Y"),  # 07-18-2025
-                date_obj.strftime("%-m-%-d-%Y") if hasattr(date_obj, 'strftime') else date_obj.strftime("%m-%d-%Y").lstrip('0').replace('-0', '-'),  # 7-18-2025
-            ]
-            
-            # For compatibility, manually create format without leading zeros
-            month = date_obj.month
-            day = date_obj.day
-            year = date_obj.year
-            date_no_zeros = f"{month}/{day}/{year}"
-            
-            if date_no_zeros not in date_formats:
-                date_formats.append(date_no_zeros)
-            
-            # Use $in operator to match multiple date formats
-            query = {"download_date": {"$in": date_formats}}
+            # Use the provided date directly (it should be from the database)
+            query = {"download_date": date}
             
             # Get all logs for the date
             logs = await db.attendance_logs.find(query).to_list(length=None)
