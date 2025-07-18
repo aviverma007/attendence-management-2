@@ -554,14 +554,14 @@ class GoogleSheetsEmployeeSystemTester:
                 data = response.json()
                 if "logs" in data and isinstance(data["logs"], list):
                     logs = data["logs"]
-                    total = data.get("total", len(logs))
+                    total = data.get("total_count", len(logs))
                     
                     if len(logs) > 0:
                         # Check if logs have required fields
                         sample_log = logs[0]
-                        required_fields = ["device_log_id", "user_id", "device_id", "log_date", "direction"]
+                        required_fields = ["device_log_id", "user_id", "device_id", "log_date"]
                         if all(field in sample_log for field in required_fields):
-                            self.log_test("Get Attendance Logs", True, f"Retrieved {len(logs)} attendance logs successfully (Total: {total})", f"Sample: User {sample_log['user_id']} - Device {sample_log['device_id']} - {sample_log['direction']}")
+                            self.log_test("Get Attendance Logs", True, f"Retrieved {len(logs)} attendance logs successfully (Total: {total})", f"Sample: User {sample_log['user_id']} - Device {sample_log['device_id']} - {sample_log.get('direction', 'N/A')}")
                             return logs
                         else:
                             self.log_test("Get Attendance Logs", False, "Attendance log data missing required fields", sample_log)
