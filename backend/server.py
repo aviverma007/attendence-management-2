@@ -792,6 +792,115 @@ async def get_attendance_log_stats(current_user: dict = Depends(get_current_user
         "recent_activity": recent_logs
     }
 
+@api_router.get("/stats/daily-attendance")
+async def get_daily_attendance_stats(
+    date: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get daily attendance statistics with date filter"""
+    
+    # Use today's date if no date provided
+    if not date:
+        from datetime import datetime
+        date = datetime.now().strftime("%m/%d/%Y")
+    
+    stats = await sheets_service.get_daily_attendance_stats(date)
+    
+    # Add percentages
+    total = stats["total_employees"]
+    if total > 0:
+        stats["present_percentage"] = round((stats["present"] / total) * 100, 2)
+        stats["absent_percentage"] = round((stats["absent"] / total) * 100, 2)
+        stats["half_day_percentage"] = round((stats["half_day"] / total) * 100, 2)
+        stats["on_leave_percentage"] = round((stats["on_leave"] / total) * 100, 2)
+    else:
+        stats["present_percentage"] = 0
+        stats["absent_percentage"] = 0
+        stats["half_day_percentage"] = 0
+        stats["on_leave_percentage"] = 0
+    
+    stats["date"] = date
+    return stats
+
+@api_router.get("/employees/search")
+async def search_employee_by_code(
+    code: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Search employee by code and return detailed information"""
+    
+    if not code:
+        raise HTTPException(status_code=400, detail="Employee code is required")
+    
+    employee_details = await sheets_service.get_employee_details(code)
+    
+    if not employee_details:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    return employee_details
+
+@api_router.get("/employees/suggestions")
+async def get_employee_suggestions(
+    query: str = "",
+    limit: int = 10,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get employee suggestions for search autocomplete"""
+    
+    if len(query) < 2:
+        return []
+    
+    # Get distinct user IDs that match the query
+    pipeline = [
+        {"$match": {"user_id": {"$regex": query, "$options": "i"}}},
+        {"$group": {"_id": "$user_id"}},
+        {"$limit": limit}
+    ]
+    
+    results = await db.attendance_logs.aggregate(pipeline).to_list(length=None)
+    
+    suggestions = []
+    for result in results:
+        user_id = result["_id"]
+        suggestions.append({
+            "code": user_id,
+            "name": sheets_service.get_employee_name(user_id),
+            "location": "Multiple Locations"  # Since they might punch from different devices
+        })
+    
+    return suggestions
+
+@api_router.get("/attendance-logs/by-date")
+async def get_attendance_logs_by_date(
+    date: str,
+    skip: int = 0,
+    limit: int = 100,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get attendance logs for a specific date"""
+    
+    # Get logs for the specific date
+    query = {"download_date": date}
+    
+    total = await db.attendance_logs.count_documents(query)
+    logs = await db.attendance_logs.find(query).sort("log_date", -1).skip(skip).limit(limit).to_list(length=None)
+    
+    # Convert ObjectId to string and enhance with location info
+    enhanced_logs = []
+    for log in logs:
+        log = convert_object_id(log)
+        log["location_name"] = sheets_service.get_device_location(log.get("device_id", ""))
+        log["employee_name"] = sheets_service.get_employee_name(log.get("user_id", ""))
+        enhanced_logs.append(log)
+    
+    return {
+        "logs": enhanced_logs,
+        "total": total,
+        "date": date,
+        "skip": skip,
+        "limit": limit
+    }
+
 @api_router.get("/sync/status")
 async def get_sync_status(current_user: dict = Depends(get_current_user)):
     """Get sync status and last sync time"""
