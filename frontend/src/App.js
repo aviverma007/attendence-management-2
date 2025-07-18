@@ -665,12 +665,23 @@ const OverviewTab = ({ stats, dailyStats, attendanceLogStats, syncStatus, select
                 <button
                   key={emp.code}
                   onClick={() => handleEmployeeSelect(emp.code)}
-                  className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                  className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between border-b border-gray-100 last:border-b-0"
                 >
-                  <div className="font-medium text-gray-900">{emp.code}</div>
-                  <div className="text-sm text-gray-600">{emp.name}</div>
+                  <div>
+                    <div className="font-medium text-gray-900">{emp.name}</div>
+                    <div className="text-sm text-gray-500">Code: {emp.code}</div>
+                    <div className="text-sm text-gray-500">{emp.department} • {emp.location}</div>
+                  </div>
+                  <ChevronRightIcon className="h-4 w-4 text-gray-400" />
                 </button>
               ))}
+            </div>
+          )}
+          
+          {/* No results message */}
+          {showSuggestions && employeeSuggestions.length === 0 && employeeSearch.length >= 2 && !searchLoading && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4 text-center text-gray-500">
+              No employees found matching "{employeeSearch}"
             </div>
           )}
         </div>
