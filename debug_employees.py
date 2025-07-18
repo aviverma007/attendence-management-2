@@ -3,7 +3,7 @@ import requests
 import json
 
 # Test the employees endpoint with admin login
-BACKEND_URL = "https://2e95a472-8e49-4039-b11a-53b287a453ba.preview.emergentagent.com/api"
+BACKEND_URL = "https://c944448d-9eeb-405e-a938-004cce1e2f57.preview.emergentagent.com/api"
 
 def test_employees():
     session = requests.Session()
