@@ -832,12 +832,39 @@ const EmployeesTab = ({ employees, searchQuery, setSearchQuery, onEmployeeSelect
             <MagnifyingGlassIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search employees..."
+              placeholder="Search by employee ID, name, department, or site..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              onChange={handleSearchChange}
+              className="pl-10 pr-4 py-2 w-80 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
             />
+            {employeeSearchLoading && (
+              <div className="absolute right-3 top-3">
+                <ArrowPathIcon className="h-5 w-5 text-gray-400 animate-spin" />
+              </div>
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* Employee Count Display */}
+      <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            Showing {employees.length} of {totalEmployeeCount} employees
+            {searchQuery && (
+              <span className="ml-2 text-indigo-600">
+                (filtered by "{searchQuery}")
+              </span>
+            )}
+          </div>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-sm text-indigo-600 hover:text-indigo-800"
+            >
+              Clear search
+            </button>
+          )}
         </div>
       </div>
 
