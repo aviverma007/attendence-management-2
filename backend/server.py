@@ -536,7 +536,10 @@ sheets_service = GoogleSheetsService()
 # Helper functions
 def convert_object_id(obj):
     """Convert MongoDB ObjectId to string"""
-    if isinstance(obj, list):
+    from bson import ObjectId
+    if isinstance(obj, ObjectId):
+        return str(obj)
+    elif isinstance(obj, list):
         return [convert_object_id(item) for item in obj]
     elif isinstance(obj, dict):
         return {key: convert_object_id(value) for key, value in obj.items()}
