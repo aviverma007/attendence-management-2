@@ -533,23 +533,38 @@ class GoogleSheetsEmployeeSystemTester:
             # Create a session without authentication
             unauth_session = requests.Session()
             
-            # Test endpoints that should require authentication
-            endpoints_to_test = [
-                "/sync/attendance-logs",
+            # Test GET endpoints that should require authentication
+            get_endpoints = [
                 "/attendance-logs",
                 "/attendance-logs/stats"
             ]
             
+            # Test POST endpoints that should require authentication
+            post_endpoints = [
+                "/sync/attendance-logs"
+            ]
+            
             all_protected = True
-            for endpoint in endpoints_to_test:
+            
+            # Test GET endpoints
+            for endpoint in get_endpoints:
                 response = unauth_session.get(f"{self.base_url}{endpoint}")
                 if response.status_code != 401 and response.status_code != 403:
-                    self.log_test("Authentication Required", False, f"Endpoint {endpoint} not properly protected (status: {response.status_code})")
+                    self.log_test("Authentication Required", False, f"GET endpoint {endpoint} not properly protected (status: {response.status_code})")
+                    all_protected = False
+                    break
+            
+            # Test POST endpoints
+            for endpoint in post_endpoints:
+                response = unauth_session.post(f"{self.base_url}{endpoint}")
+                if response.status_code != 401 and response.status_code != 403:
+                    self.log_test("Authentication Required", False, f"POST endpoint {endpoint} not properly protected (status: {response.status_code})")
                     all_protected = False
                     break
             
             if all_protected:
-                self.log_test("Authentication Required", True, f"All {len(endpoints_to_test)} new endpoints properly require authentication")
+                total_endpoints = len(get_endpoints) + len(post_endpoints)
+                self.log_test("Authentication Required", True, f"All {total_endpoints} new endpoints properly require authentication")
                 return True
             else:
                 return False
