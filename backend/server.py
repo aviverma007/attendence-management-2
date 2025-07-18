@@ -1,40 +1,47 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-from motor.motor_asyncio import AsyncIOMotorClient
+"""
+Enhanced Employee Management System with Google Sheets Integration
+"""
+
 import os
 import logging
-from pathlib import Path
-from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
+from datetime import datetime, timedelta
+from typing import Optional, List, Dict, Any
 import uuid
-from datetime import datetime, date, timedelta
-import json
-import jwt
-import bcrypt
-import pandas as pd
-import requests
-from io import StringIO
+from fastapi import FastAPI, HTTPException, Depends, status, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel, Field
+from motor.motor_asyncio import AsyncIOMotorClient
+from passlib.context import CryptContext
+from jose import JWTError, jwt
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 import asyncio
+import requests
+from datetime import datetime
+import pandas as pd
+from typing import Union
+import json
+from pathlib import Path
 
-# Configure logging
+# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-def convert_object_id(data):
-    """Convert ObjectId to string in MongoDB documents"""
-    if isinstance(data, list):
-        return [convert_object_id(item) for item in data]
-    elif isinstance(data, dict):
-        return {k: str(v) if k == "_id" else convert_object_id(v) if isinstance(v, dict) else v for k, v in data.items()}
-    else:
-        return data
+# FastAPI app
+app = FastAPI(title="Employee Management System", version="1.0.0")
 
-ROOT_DIR = Path(__file__).parent
-load_dotenv(ROOT_DIR / '.env')
+# CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # MongoDB connection
 mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
@@ -42,9 +49,9 @@ db_name = os.environ.get('DB_NAME', 'employee_management')
 
 # Log the connection details
 if 'mongodb+srv://' in mongo_url:
-    logging.info(f"Connecting to MongoDB Atlas cluster, Database: {db_name}")
+    logger.info(f"Connecting to MongoDB Atlas: {mongo_url[:50]}...")
 else:
-    logging.info(f"Connecting to MongoDB at: {mongo_url}, Database: {db_name}")
+    logger.info(f"Connecting to MongoDB: {mongo_url}")
 
 client = AsyncIOMotorClient(mongo_url)
 db = client[db_name]
@@ -54,14 +61,17 @@ SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'employee-management-secret-key-20
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # 24 hours
 
-# Google Sheets Configuration
-SPREADSHEET_ID = "10rKRL9trrc2QKU5OfGun1A9fpEi0oovZ"
-SPREADSHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/export?format=csv"
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # Security
 security = HTTPBearer()
 
-# Data Models
+# API Router
+from fastapi import APIRouter
+api_router = APIRouter(prefix="/api")
+
+# Pydantic models
 class AttendanceLog(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     device_log_id: str
@@ -71,13 +81,14 @@ class AttendanceLog(BaseModel):
     log_date: str
     direction: str
     att_direction: str
+    c1: str
     work_code: str
-    longitude: Optional[str] = None
-    latitude: Optional[str] = None
-    is_approved: int = -1
-    created_date: Optional[str] = None
-    last_modified_date: Optional[str] = None
-    location_address: Optional[str] = None
+    longitude: str
+    latitude: str
+    is_approved: int
+    created_date: str
+    last_modified_date: str
+    location_address: str
     body_temperature: float = 0.0
     is_mask_on: int = 0
     created_at: datetime = Field(default_factory=datetime.now)
@@ -125,39 +136,35 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
-class AttendanceStats(BaseModel):
-    total_employees: int
-    present: int
-    absent: int
-    present_percentage: float
-    absent_percentage: float
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
-class DepartmentStats(BaseModel):
+class EmployeeDateWiseData(BaseModel):
+    employee_id: str
+    name: str
     department: str
-    total_employees: int
-    present: int
-    absent: int
-    present_percentage: float
-
-class SiteStats(BaseModel):
     site: str
-    total_employees: int
-    present: int
-    absent: int
-    present_percentage: float
+    date: str
+    attendance_status: str
+    first_punch: Optional[str] = None
+    last_punch: Optional[str] = None
+    total_hours: float = 0.0
+    punch_count: int = 0
+    all_punches: List[Dict[str, Any]] = []
 
-# Google Sheets Integration
 class GoogleSheetsService:
     def __init__(self):
-        self.spreadsheet_url = SPREADSHEET_URL
-        # Device ID to Location mapping (placeholder - will be provided later)
+        self.SHEET_URL = 'https://docs.google.com/spreadsheets/d/1WEXvP_vPDq2_H_HwGaUuVaVpXXfgZTjJyWVYhwlBfks/edit#gid=0'
+        self.credentials = None
+        self.gc = None
+        self.sheet = None
         self.device_locations = {
-            "1": "Main Office",
-            "22": "Branch A",
-            "23": "Branch B",
-            "24": "Branch C",
-            "25": "Branch D",
-            "26": "Branch E",
+            "22": "Main Office",
+            "23": "Branch A",
+            "24": "Branch B", 
+            "25": "Branch C",
+            "26": "Branch D",
             "27": "Branch F",
             "28": "Branch G",
             "29": "Branch H",
@@ -169,7 +176,7 @@ class GoogleSheetsService:
         }
     
     def calculate_attendance_status(self, logs_for_day):
-        """Calculate attendance status based on punch records and timing rules"""
+        """Enhanced attendance status calculation with proper time calculation"""
         if not logs_for_day:
             return "Absent"
         
@@ -181,10 +188,15 @@ class GoogleSheetsService:
         
         # Parse first punch time
         first_punch_time = first_punch.get('log_date', '')
+        last_punch_time = last_punch.get('log_date', '')
+        
         if not first_punch_time:
             return "Absent"
         
         try:
+            # Calculate actual working hours
+            total_hours = self.calculate_working_hours(logs_for_day)
+            
             # Extract time from log_date (format: "5:23:24 PM")
             time_str = first_punch_time.strip()
             if 'AM' in time_str or 'PM' in time_str:
@@ -193,92 +205,97 @@ class GoogleSheetsService:
                 hour = time_obj.hour
                 minute = time_obj.minute
                 
-                # Check if punch is before 10:30 AM
-                if hour < 10 or (hour == 10 and minute <= 30):
-                    # Check total hours (placeholder logic)
-                    total_hours = len(logs_for_day) * 1.5  # Simplified calculation
-                    if total_hours >= 7:
+                # Enhanced attendance logic
+                # 1. If first punch is after 2 PM, it's automatically Half Day
+                if hour >= 14:  # After 2 PM
+                    return "Half Day"
+                
+                # 2. If first punch is before 10:30 AM (on time)
+                elif hour < 10 or (hour == 10 and minute <= 30):
+                    if total_hours >= 8:  # Full day: 8+ hours
                         return "Present"
-                    elif total_hours >= 4.5:
+                    elif total_hours >= 4:  # Half day: 4-7.9 hours
                         return "Half Day"
-                    else:
-                        return "Present"  # Still present but less hours
+                    else:  # Less than 4 hours
+                        return "Half Day"
+                
+                # 3. If first punch is between 10:30 AM and 2 PM (late but not too late)
                 else:
-                    # Punch after 10:30 AM
-                    if hour >= 14:  # After 2 PM
+                    if total_hours >= 6:  # Adjusted for late start
+                        return "Present"
+                    elif total_hours >= 4:
                         return "Half Day"
                     else:
-                        return "Present"
+                        return "Half Day"
             else:
-                return "Present"  # Default if time format is unclear
+                # Default for unclear time format
+                return "Present" if total_hours >= 4 else "Half Day"
         except:
             return "Present"  # Default if parsing fails
     
+    def calculate_working_hours(self, logs_for_day):
+        """Calculate actual working hours from punch logs"""
+        if not logs_for_day or len(logs_for_day) < 2:
+            return 0.0
+        
+        # Sort logs by time
+        logs_for_day.sort(key=lambda x: x.get('log_date', ''))
+        
+        try:
+            first_punch = logs_for_day[0]
+            last_punch = logs_for_day[-1]
+            
+            first_time_str = first_punch.get('log_date', '')
+            last_time_str = last_punch.get('log_date', '')
+            
+            if not first_time_str or not last_time_str:
+                return 0.0
+            
+            # Parse times
+            first_time = datetime.strptime(first_time_str.strip(), "%I:%M:%S %p")
+            last_time = datetime.strptime(last_time_str.strip(), "%I:%M:%S %p")
+            
+            # Calculate difference
+            time_diff = last_time - first_time
+            hours = time_diff.total_seconds() / 3600
+            
+            # Handle overnight shifts (if last punch is before first punch)
+            if hours < 0:
+                hours += 24
+            
+            # Subtract standard lunch break (1 hour) if more than 5 hours
+            if hours > 5:
+                hours -= 1
+            
+            return max(0, hours)
+        except:
+            return 0.0
+    
     def get_employee_name(self, user_id):
-        """Generate placeholder employee name"""
+        """Generate employee name"""
         return f"Employee {user_id}"
     
     def get_employee_mobile(self, user_id):
-        """Generate placeholder mobile number"""
-        return f"+91-9876{user_id.zfill(6)}"
+        """Generate employee mobile"""
+        return f"+91-{user_id[-4:]}-{user_id[-6:-4]}-{user_id[-8:-6]}"
     
     def get_employee_email(self, user_id):
-        """Generate placeholder email"""
-        return f"employee{user_id}@company.com"
+        """Generate employee email"""
+        return f"employee.{user_id}@company.com"
     
     def get_device_location(self, device_id):
-        """Get location for device ID"""
-        return self.device_locations.get(str(device_id), f"Site {device_id}")
+        """Get device location"""
+        return self.device_locations.get(device_id, f"Location {device_id}")
     
-    async def fetch_attendance_logs(self):
-        """Fetch attendance log data from Google Sheets"""
+    async def get_daily_attendance_stats(self, date):
+        """Get daily attendance statistics for a specific date"""
         try:
-            response = requests.get(self.spreadsheet_url)
-            response.raise_for_status()
+            # Parse date and create query
+            date_obj = datetime.strptime(date, "%m/%d/%Y")
+            date_str = date_obj.strftime("%m/%d/%Y")
             
-            # Parse CSV data
-            csv_data = StringIO(response.text)
-            df = pd.read_csv(csv_data)
-            
-            # Convert to list of dictionaries
-            attendance_logs = []
-            for _, row in df.iterrows():
-                log = {
-                    "id": str(uuid.uuid4()),
-                    "device_log_id": str(row.get("DeviceLogId", "")),
-                    "download_date": str(row.get("DownloadDate", "")),
-                    "device_id": str(row.get("DeviceId", "")),
-                    "user_id": str(row.get("UserId", "")),
-                    "log_date": str(row.get("LogDate", "")),
-                    "direction": str(row.get("Direction", "")),
-                    "att_direction": str(row.get("AttDirection", "")),
-                    "c1": str(row.get("C1", "")),  # In/Out status
-                    "work_code": str(row.get("WorkCode", "")),
-                    "longitude": str(row.get("Longitude", "")),
-                    "latitude": str(row.get("Latitude", "")),
-                    "is_approved": int(row.get("IsApproved", -1)),
-                    "created_date": str(row.get("CreatedDate", "")),
-                    "last_modified_date": str(row.get("LastModifiedDate", "")),
-                    "location_address": str(row.get("LocationAddress", "")),
-                    "body_temperature": float(row.get("BodyTemperature", 0.0)),
-                    "is_mask_on": int(row.get("IsMaskOn", 0)),
-                    "created_at": datetime.now(),
-                    "updated_at": datetime.now()
-                }
-                attendance_logs.append(log)
-            
-            return attendance_logs
-        except Exception as e:
-            logger.error(f"Error fetching attendance logs from Google Sheets: {e}")
-            return []
-    
-    async def get_daily_attendance_stats(self, date_filter=None):
-        """Get daily attendance statistics"""
-        try:
-            # Build query
-            query = {}
-            if date_filter:
-                query["download_date"] = date_filter
+            # Use date_obj for more flexible matching
+            query = {"download_date": date_str}
             
             # Get all logs for the date
             logs = await db.attendance_logs.find(query).to_list(length=None)
@@ -336,45 +353,82 @@ class GoogleSheetsService:
             # Get recent logs for this user
             recent_logs = await db.attendance_logs.find(
                 {"user_id": user_id}
-            ).sort("download_date", -1).limit(10).to_list(length=None)
+            ).sort("created_at", -1).limit(10).to_list(length=None)
             
             if not recent_logs:
                 return None
             
-            # Get latest log for basic info
-            latest_log = recent_logs[0]
-            device_id = latest_log.get("device_id", "")
+            # Calculate current attendance status
+            today = datetime.now().strftime("%m/%d/%Y")
+            today_logs = [log for log in recent_logs if log.get("download_date") == today]
+            current_status = self.calculate_attendance_status(today_logs)
             
-            employee_details = {
-                "user_id": user_id,
+            return {
+                "employee_id": user_id,
                 "name": self.get_employee_name(user_id),
-                "code": user_id,
-                "department": "General Department",  # Placeholder
-                "location": self.get_device_location(device_id),
+                "department": "General Department",
+                "site": self.get_device_location(recent_logs[0].get("device_id", "")),
                 "mobile": self.get_employee_mobile(user_id),
                 "email": self.get_employee_email(user_id),
-                "recent_logs": recent_logs[:5]  # Last 5 logs
+                "attendance_status": current_status,
+                "recent_logs": recent_logs
             }
-            
-            return employee_details
-            
         except Exception as e:
             logger.error(f"Error getting employee details: {e}")
             return None
     
-    async def fetch_data(self):
-        """Fetch data from Google Sheets - Legacy method for backward compatibility"""
+    async def sync_data_from_google_sheets(self):
+        """Sync data from Google Sheets to MongoDB"""
         try:
-            # For backward compatibility, create employee-like records from attendance logs
-            attendance_logs = await self.fetch_attendance_logs()
+            # Read CSV data from Google Sheets
+            csv_url = self.SHEET_URL.replace('/edit#gid=0', '/export?format=csv&gid=0')
+            response = requests.get(csv_url)
             
-            # Create a mapping from attendance logs to employees
+            if response.status_code != 200:
+                raise Exception(f"Failed to fetch data from Google Sheets: {response.status_code}")
+            
+            # Parse CSV data
+            from io import StringIO
+            df = pd.read_csv(StringIO(response.text))
+            
+            # Clear existing data
+            await db.attendance_logs.delete_many({})
+            
+            # Process each row
+            logs_to_insert = []
             employees = {}
-            for log in attendance_logs:
-                user_id = log.get("user_id", "")
+            
+            for index, row in df.iterrows():
+                # Create attendance log
+                log_data = {
+                    "id": str(uuid.uuid4()),
+                    "device_log_id": str(row.get("DeviceLogId", "")),
+                    "download_date": str(row.get("DownloadDate", "")),
+                    "device_id": str(row.get("DeviceId", "")),
+                    "user_id": str(row.get("UserId", "")),
+                    "log_date": str(row.get("LogDate", "")),
+                    "direction": str(row.get("Direction", "")),
+                    "att_direction": str(row.get("AttDirection", "")),
+                    "c1": str(row.get("C1", "")),
+                    "work_code": str(row.get("WorkCode", "")),
+                    "longitude": str(row.get("Longitude", "")),
+                    "latitude": str(row.get("Latitude", "")),
+                    "is_approved": int(row.get("IsApproved", -1)),
+                    "created_date": str(row.get("CreatedDate", "")),
+                    "last_modified_date": str(row.get("LastModifiedDate", "")),
+                    "location_address": str(row.get("LocationAddress", "")),
+                    "body_temperature": float(row.get("BodyTemperature", 0.0)),
+                    "is_mask_on": int(row.get("IsMaskOn", 0)),
+                    "created_at": datetime.now(),
+                    "updated_at": datetime.now()
+                }
+                logs_to_insert.append(log_data)
+                
+                # Create employee record
+                user_id = log_data.get("user_id", "")
                 if user_id and user_id not in employees:
                     # Determine attendance status based on latest log
-                    status = "Present" if log.get("c1", "").lower() == "1" else "Absent"
+                    status = "Present" if log_data.get("c1", "").lower() == "1" else "Absent"
                     
                     employees[user_id] = {
                         "id": str(uuid.uuid4()),
@@ -382,7 +436,7 @@ class GoogleSheetsService:
                         "name": self.get_employee_name(user_id),
                         "department": "General Department",
                         "attendance_status": status,
-                        "site": self.get_device_location(log.get("device_id", "")),
+                        "site": self.get_device_location(log_data.get("device_id", "")),
                         "mobile": self.get_employee_mobile(user_id),
                         "email": self.get_employee_email(user_id),
                         "created_at": datetime.now(),
@@ -393,136 +447,181 @@ class GoogleSheetsService:
         except Exception as e:
             logger.error(f"Error fetching data from Google Sheets: {e}")
             return []
-
-    async def sync_attendance_logs_to_database(self):
-        """Sync attendance logs to MongoDB"""
+    
+    async def get_employees_date_wise_data(self, start_date: str, end_date: str, employee_id: str = None):
+        """Get comprehensive date-wise employee data"""
         try:
-            logs = await self.fetch_attendance_logs()
-            if not logs:
-                return {"status": "error", "message": "No attendance logs fetched from Google Sheets"}
+            # Build query
+            query = {}
+            if employee_id:
+                query["user_id"] = employee_id
             
-            # Clear existing attendance logs
-            await db.attendance_logs.delete_many({})
+            # Date range query
+            if start_date and end_date:
+                query["download_date"] = {
+                    "$gte": start_date,
+                    "$lte": end_date
+                }
+            elif start_date:
+                query["download_date"] = start_date
             
-            # Insert new logs
-            await db.attendance_logs.insert_many(logs)
+            # Get all logs for the period
+            logs = await db.attendance_logs.find(query).sort("download_date", 1).to_list(length=None)
             
-            logger.info(f"Synced {len(logs)} attendance logs from Google Sheets")
-            return {"status": "success", "count": len(logs), "message": "Attendance logs synced successfully"}
+            # Group by employee and date
+            employee_date_data = {}
+            
+            for log in logs:
+                user_id = log.get("user_id")
+                date = log.get("download_date")
+                
+                if user_id and date:
+                    key = f"{user_id}_{date}"
+                    if key not in employee_date_data:
+                        employee_date_data[key] = {
+                            "employee_id": user_id,
+                            "name": self.get_employee_name(user_id),
+                            "department": "General Department",
+                            "site": self.get_device_location(log.get("device_id", "")),
+                            "date": date,
+                            "all_punches": [],
+                            "punch_count": 0,
+                            "first_punch": None,
+                            "last_punch": None,
+                            "total_hours": 0.0,
+                            "attendance_status": "Absent"
+                        }
+                    
+                    employee_date_data[key]["all_punches"].append({
+                        "time": log.get("log_date", ""),
+                        "device_id": log.get("device_id", ""),
+                        "direction": log.get("c1", ""),
+                        "location": self.get_device_location(log.get("device_id", ""))
+                    })
+            
+            # Calculate attendance metrics for each employee-date combination
+            result = []
+            for key, data in employee_date_data.items():
+                punches = data["all_punches"]
+                if punches:
+                    # Sort punches by time
+                    punches.sort(key=lambda x: x.get("time", ""))
+                    
+                    data["punch_count"] = len(punches)
+                    data["first_punch"] = punches[0]["time"]
+                    data["last_punch"] = punches[-1]["time"]
+                    
+                    # Calculate total hours and attendance status
+                    data["total_hours"] = self.calculate_working_hours(
+                        [{"log_date": p["time"]} for p in punches]
+                    )
+                    data["attendance_status"] = self.calculate_attendance_status(
+                        [{"log_date": p["time"]} for p in punches]
+                    )
+                
+                result.append(data)
+            
+            # Sort by date and then by employee_id
+            result.sort(key=lambda x: (x["date"], x["employee_id"]))
+            
+            return result
+            
         except Exception as e:
-            logger.error(f"Error syncing attendance logs: {e}")
-            return {"status": "error", "message": str(e)}
-
-    async def sync_to_database(self):
-        """Sync Google Sheets data to MongoDB"""
-        try:
-            # Sync both attendance logs and derived employee data
-            log_result = await self.sync_attendance_logs_to_database()
-            
-            employees = await self.fetch_data()
-            if not employees:
-                return {"status": "error", "message": "No employee data derived from Google Sheets"}
-            
-            # Clear existing employees
-            await db.employees.delete_many({})
-            
-            # Insert new employees
-            await db.employees.insert_many(employees)
-            
-            logger.info(f"Synced {len(employees)} employees from Google Sheets")
-            return {
-                "status": "success", 
-                "employee_count": len(employees),
-                "log_count": log_result.get("count", 0),
-                "message": "Data synced successfully"
-            }
-        except Exception as e:
-            logger.error(f"Error syncing data: {e}")
-            return {"status": "error", "message": str(e)}
+            logger.error(f"Error getting date-wise employee data: {e}")
+            return []
 
 # Initialize Google Sheets service
 sheets_service = GoogleSheetsService()
 
-# FastAPI App
-app = FastAPI(title="Employee Management System", version="2.0.0")
+# Helper functions
+def convert_object_id(obj):
+    """Convert MongoDB ObjectId to string"""
+    if isinstance(obj, list):
+        return [convert_object_id(item) for item in obj]
+    elif isinstance(obj, dict):
+        return {key: convert_object_id(value) for key, value in obj.items()}
+    else:
+        return obj
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def verify_password(plain_password, hashed_password):
+    return pwd_context.verify(plain_password, hashed_password)
 
-# Authentication functions
-def hash_password(password: str) -> str:
-    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+def get_password_hash(password):
+    return pwd_context.hash(password)
 
-def verify_password(password: str, hashed_password: str) -> bool:
-    return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
-
-def create_access_token(data: dict):
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+    
+    user = await db.users.find_one({"username": username})
+    if user is None:
+        raise credentials_exception
+    
+    return convert_object_id(user)
+
+# Initialize database with default user
+@app.on_event("startup")
+async def startup_event():
+    """Initialize database with default user and sample data"""
+    try:
+        # Create default admin user
+        admin_user = await db.users.find_one({"username": "admin"})
+        if not admin_user:
+            admin_data = {
+                "id": str(uuid.uuid4()),
+                "username": "admin",
+                "email": "admin@company.com",
+                "password": get_password_hash("admin123"),
+                "role": "admin",
+                "created_at": datetime.now()
+            }
+            await db.users.insert_one(admin_data)
+            logger.info("Default admin user created")
         
-        user = await db.users.find_one({"username": username})
-        if user is None:
-            raise HTTPException(status_code=401, detail="User not found")
+        # Check if we have employee data
+        employee_count = await db.employees.count_documents({})
+        if employee_count == 0:
+            logger.info("No employees found, syncing from Google Sheets...")
+            employees = await sheets_service.sync_data_from_google_sheets()
+            if employees:
+                await db.employees.insert_many(employees)
+                logger.info(f"Synced {len(employees)} employees from Google Sheets")
         
-        return convert_object_id(user)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except jwt.JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        logger.info("Database initialization completed successfully")
+    except Exception as e:
+        logger.error(f"Error during database initialization: {e}")
 
-# API Routes
-api_router = APIRouter(prefix="/api")
-
-# Authentication routes
-@api_router.post("/auth/login")
-async def login(user_login: UserLogin):
-    user = await db.users.find_one({"username": user_login.username})
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    if not verify_password(user_login.password, user["password"]):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    
-    access_token = create_access_token(data={"sub": user["username"]})
-    return {"access_token": access_token, "token_type": "bearer", "user": convert_object_id(user)}
-
-@api_router.post("/auth/register")
-async def register(user_create: UserCreate):
-    # Check if user already exists
-    existing_user = await db.users.find_one({"username": user_create.username})
-    if existing_user:
-        raise HTTPException(status_code=400, detail="Username already exists")
-    
-    # Hash password
-    hashed_password = hash_password(user_create.password)
-    
-    # Create user
-    user = {
-        "id": str(uuid.uuid4()),
-        "username": user_create.username,
-        "email": user_create.email,
-        "password": hashed_password,
-        "role": user_create.role,
-        "created_at": datetime.now()
-    }
-    
-    await db.users.insert_one(user)
+# Auth routes
+@api_router.post("/auth/login", response_model=dict)
+async def login(user_credentials: UserLogin):
+    """Login endpoint"""
+    user = await db.users.find_one({"username": user_credentials.username})
+    if not user or not verify_password(user_credentials.password, user["password"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     access_token = create_access_token(data={"sub": user["username"]})
     return {"access_token": access_token, "token_type": "bearer", "user": convert_object_id(user)}
@@ -600,20 +699,21 @@ async def create_employee(employee: EmployeeCreate, current_user: dict = Depends
 @api_router.put("/employees/{employee_id}")
 async def update_employee(employee_id: str, employee_update: EmployeeUpdate, current_user: dict = Depends(get_current_user)):
     """Update an employee"""
-    employee = await db.employees.find_one({"$or": [{"id": employee_id}, {"employee_id": employee_id}]})
-    if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
-    
     update_data = {k: v for k, v in employee_update.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No data provided for update")
+    
     update_data["updated_at"] = datetime.now()
     
-    await db.employees.update_one(
+    result = await db.employees.update_one(
         {"$or": [{"id": employee_id}, {"employee_id": employee_id}]},
         {"$set": update_data}
     )
     
-    updated_employee = await db.employees.find_one({"$or": [{"id": employee_id}, {"employee_id": employee_id}]})
-    return convert_object_id(updated_employee)
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    return {"message": "Employee updated successfully"}
 
 @api_router.delete("/employees/{employee_id}")
 async def delete_employee(employee_id: str, current_user: dict = Depends(get_current_user)):
@@ -663,14 +763,15 @@ async def get_department_stats(current_user: dict = Depends(get_current_user)):
     for dept in departments:
         total = dept["total_employees"]
         present = dept["present"]
-        present_percentage = (present / total * 100) if total > 0 else 0
+        absent = dept["absent"]
         
         result.append({
             "department": dept["_id"],
             "total_employees": total,
             "present": present,
-            "absent": dept["absent"],
-            "present_percentage": round(present_percentage, 2)
+            "absent": absent,
+            "present_percentage": round((present / total * 100), 2) if total > 0 else 0,
+            "absent_percentage": round((absent / total * 100), 2) if total > 0 else 0
         })
     
     return result
@@ -695,113 +796,25 @@ async def get_site_stats(current_user: dict = Depends(get_current_user)):
     for site in sites:
         total = site["total_employees"]
         present = site["present"]
-        present_percentage = (present / total * 100) if total > 0 else 0
+        absent = site["absent"]
         
         result.append({
             "site": site["_id"],
             "total_employees": total,
             "present": present,
-            "absent": site["absent"],
-            "present_percentage": round(present_percentage, 2)
+            "absent": absent,
+            "present_percentage": round((present / total * 100), 2) if total > 0 else 0,
+            "absent_percentage": round((absent / total * 100), 2) if total > 0 else 0
         })
     
     return result
-
-# Google Sheets sync routes
-@api_router.post("/sync/google-sheets")
-async def sync_google_sheets(current_user: dict = Depends(get_current_user)):
-    """Sync data from Google Sheets to database"""
-    result = await sheets_service.sync_to_database()
-    return result
-
-@api_router.post("/sync/attendance-logs")
-async def sync_attendance_logs(current_user: dict = Depends(get_current_user)):
-    """Sync attendance logs from Google Sheets to database"""
-    result = await sheets_service.sync_attendance_logs_to_database()
-    return result
-
-@api_router.get("/attendance-logs")
-async def get_attendance_logs(
-    skip: int = 0,
-    limit: int = 100,
-    user_id: Optional[str] = None,
-    device_id: Optional[str] = None,
-    date_from: Optional[str] = None,
-    date_to: Optional[str] = None,
-    current_user: dict = Depends(get_current_user)
-):
-    """Get attendance logs with filtering"""
-    
-    # Build query filter
-    query = {}
-    if user_id:
-        query["user_id"] = user_id
-    if device_id:
-        query["device_id"] = device_id
-    if date_from:
-        query["download_date"] = {"$gte": date_from}
-    if date_to:
-        if "download_date" in query:
-            query["download_date"]["$lte"] = date_to
-        else:
-            query["download_date"] = {"$lte": date_to}
-    
-    # Get total count
-    total = await db.attendance_logs.count_documents(query)
-    
-    # Get logs
-    logs = await db.attendance_logs.find(query).sort("download_date", -1).skip(skip).limit(limit).to_list(length=None)
-    
-    # Convert ObjectId to string
-    logs = convert_object_id(logs)
-    
-    return {
-        "logs": logs,
-        "total": total,
-        "skip": skip,
-        "limit": limit
-    }
-
-@api_router.get("/attendance-logs/stats")
-async def get_attendance_log_stats(current_user: dict = Depends(get_current_user)):
-    """Get attendance log statistics"""
-    
-    # Get total logs count
-    total_logs = await db.attendance_logs.count_documents({})
-    
-    # Get unique users count
-    unique_users = len(await db.attendance_logs.distinct("user_id"))
-    
-    # Get unique devices count
-    unique_devices = len(await db.attendance_logs.distinct("device_id"))
-    
-    # Get logs by direction
-    in_logs = await db.attendance_logs.count_documents({"direction": "in"})
-    out_logs = await db.attendance_logs.count_documents({"direction": "out"})
-    
-    # Get recent activity (last 24 hours)
-    from datetime import datetime, timedelta
-    yesterday = datetime.now() - timedelta(days=1)
-    yesterday_str = yesterday.strftime("%m/%d/%Y")
-    recent_logs = await db.attendance_logs.count_documents({"download_date": {"$gte": yesterday_str}})
-    
-    return {
-        "total_logs": total_logs,
-        "unique_users": unique_users,
-        "unique_devices": unique_devices,
-        "in_logs": in_logs,
-        "out_logs": out_logs,
-        "recent_activity": recent_logs
-    }
 
 @api_router.get("/stats/daily-attendance")
 async def get_daily_attendance_stats(
     date: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get daily attendance statistics with date filter"""
-    
-    # Use today's date if no date provided
+    """Get daily attendance statistics for a specific date"""
     if not date:
         from datetime import datetime
         date = datetime.now().strftime("%m/%d/%Y")
@@ -830,10 +843,6 @@ async def search_employee_by_code(
     current_user: dict = Depends(get_current_user)
 ):
     """Search employee by code and return detailed information"""
-    
-    if not code:
-        raise HTTPException(status_code=400, detail="Employee code is required")
-    
     employee_details = await sheets_service.get_employee_details(code)
     
     if not employee_details:
@@ -852,118 +861,267 @@ async def get_employee_suggestions(
     if len(query) < 2:
         return []
     
-    # Get distinct user IDs that match the query
-    pipeline = [
-        {"$match": {"user_id": {"$regex": query, "$options": "i"}}},
-        {"$group": {"_id": "$user_id"}},
-        {"$limit": limit}
-    ]
-    
-    results = await db.attendance_logs.aggregate(pipeline).to_list(length=None)
-    
-    suggestions = []
-    for result in results:
-        user_id = result["_id"]
-        suggestions.append({
-            "code": user_id,
-            "name": sheets_service.get_employee_name(user_id),
-            "location": "Multiple Locations"  # Since they might punch from different devices
-        })
-    
-    return suggestions
+    # Search both in employees collection and attendance_logs
+    try:
+        # First try to find in employees collection
+        employee_query = {
+            "$or": [
+                {"employee_id": {"$regex": query, "$options": "i"}},
+                {"name": {"$regex": query, "$options": "i"}}
+            ]
+        }
+        
+        employees = await db.employees.find(employee_query).limit(limit).to_list(length=limit)
+        
+        suggestions = []
+        for emp in employees:
+            suggestions.append({
+                "code": emp.get("employee_id", ""),
+                "name": emp.get("name", ""),
+                "location": emp.get("site", "Unknown Location"),
+                "department": emp.get("department", "Unknown Department")
+            })
+        
+        # If not enough results, search in attendance logs
+        if len(suggestions) < limit:
+            remaining_limit = limit - len(suggestions)
+            
+            # Get distinct user IDs from attendance logs
+            pipeline = [
+                {"$match": {"user_id": {"$regex": query, "$options": "i"}}},
+                {"$group": {"_id": "$user_id", "device_id": {"$first": "$device_id"}}},
+                {"$limit": remaining_limit}
+            ]
+            
+            results = await db.attendance_logs.aggregate(pipeline).to_list(length=None)
+            
+            for result in results:
+                user_id = result["_id"]
+                # Check if already added
+                if not any(s["code"] == user_id for s in suggestions):
+                    suggestions.append({
+                        "code": user_id,
+                        "name": sheets_service.get_employee_name(user_id),
+                        "location": sheets_service.get_device_location(result.get("device_id", "")),
+                        "department": "General Department"
+                    })
+        
+        return suggestions
+        
+    except Exception as e:
+        logger.error(f"Error in employee suggestions: {e}")
+        return []
 
-@api_router.get("/attendance-logs/by-date")
-async def get_attendance_logs_by_date(
-    date: str,
-    skip: int = 0,
-    limit: int = 100,
+# NEW: Date-wise employee data endpoint
+@api_router.get("/employees/date-wise")
+async def get_employees_date_wise(
+    start_date: str,
+    end_date: Optional[str] = None,
+    employee_id: Optional[str] = None,
     current_user: dict = Depends(get_current_user)
 ):
-    """Get attendance logs for a specific date"""
+    """Get comprehensive date-wise employee attendance data"""
+    if not end_date:
+        end_date = start_date
     
-    # Get logs for the specific date
-    query = {"download_date": date}
-    
-    total = await db.attendance_logs.count_documents(query)
-    logs = await db.attendance_logs.find(query).sort("log_date", -1).skip(skip).limit(limit).to_list(length=None)
-    
-    # Convert ObjectId to string and enhance with location info
-    enhanced_logs = []
-    for log in logs:
-        log = convert_object_id(log)
-        log["location_name"] = sheets_service.get_device_location(log.get("device_id", ""))
-        log["employee_name"] = sheets_service.get_employee_name(log.get("user_id", ""))
-        enhanced_logs.append(log)
+    data = await sheets_service.get_employees_date_wise_data(start_date, end_date, employee_id)
     
     return {
-        "logs": enhanced_logs,
-        "total": total,
-        "date": date,
+        "date_range": {
+            "start_date": start_date,
+            "end_date": end_date
+        },
+        "employee_filter": employee_id,
+        "total_records": len(data),
+        "data": data
+    }
+
+# Attendance logs routes
+@api_router.get("/attendance-logs")
+async def get_attendance_logs(
+    skip: int = 0,
+    limit: int = 100,
+    user_id: Optional[str] = None,
+    device_id: Optional[str] = None,
+    date: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get attendance logs with optional filtering"""
+    query = {}
+    
+    if user_id:
+        query["user_id"] = user_id
+    
+    if device_id:
+        query["device_id"] = device_id
+    
+    if date:
+        query["download_date"] = date
+    
+    logs = await db.attendance_logs.find(query).skip(skip).limit(limit).to_list(length=limit)
+    total_count = await db.attendance_logs.count_documents(query)
+    
+    return {
+        "logs": convert_object_id(logs),
+        "total_count": total_count,
         "skip": skip,
         "limit": limit
     }
 
-@api_router.get("/sync/status")
-async def get_sync_status(current_user: dict = Depends(get_current_user)):
-    """Get sync status and last sync time"""
-    total_employees = await db.employees.count_documents({})
+@api_router.get("/attendance-logs/stats")
+async def get_attendance_logs_stats(current_user: dict = Depends(get_current_user)):
+    """Get attendance logs statistics"""
     total_logs = await db.attendance_logs.count_documents({})
+    
+    # Get unique users
+    unique_users = await db.attendance_logs.distinct("user_id")
+    
+    # Get unique devices
+    unique_devices = await db.attendance_logs.distinct("device_id")
+    
+    # Get logs by direction
+    in_logs = await db.attendance_logs.count_documents({"c1": "in"})
+    out_logs = await db.attendance_logs.count_documents({"c1": "out"})
+    
+    # Get recent logs (last 24 hours)
+    yesterday = datetime.now() - timedelta(days=1)
+    recent_logs = await db.attendance_logs.count_documents({
+        "created_at": {"$gte": yesterday}
+    })
+    
     return {
-        "total_employees": total_employees,
-        "total_attendance_logs": total_logs,
-        "last_sync": datetime.now().isoformat(),
-        "status": "active"
+        "total_logs": total_logs,
+        "unique_users": len(unique_users),
+        "unique_devices": len(unique_devices),
+        "in_logs": in_logs,
+        "out_logs": out_logs,
+        "recent_logs": recent_logs,
+        "device_locations": sheets_service.device_locations
     }
 
-# Health check
-@api_router.get("/health")
-async def health_check():
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+@api_router.post("/sync/google-sheets")
+async def sync_google_sheets(current_user: dict = Depends(get_current_user)):
+    """Sync data from Google Sheets"""
+    try:
+        # Sync attendance logs
+        csv_url = sheets_service.SHEET_URL.replace('/edit#gid=0', '/export?format=csv&gid=0')
+        response = requests.get(csv_url)
+        
+        if response.status_code != 200:
+            raise HTTPException(status_code=400, detail="Failed to fetch data from Google Sheets")
+        
+        # Parse CSV data
+        from io import StringIO
+        df = pd.read_csv(StringIO(response.text))
+        
+        # Clear existing data
+        await db.attendance_logs.delete_many({})
+        await db.employees.delete_many({})
+        
+        # Process each row
+        logs_to_insert = []
+        employees = {}
+        
+        for index, row in df.iterrows():
+            # Create attendance log
+            log_data = {
+                "id": str(uuid.uuid4()),
+                "device_log_id": str(row.get("DeviceLogId", "")),
+                "download_date": str(row.get("DownloadDate", "")),
+                "device_id": str(row.get("DeviceId", "")),
+                "user_id": str(row.get("UserId", "")),
+                "log_date": str(row.get("LogDate", "")),
+                "direction": str(row.get("Direction", "")),
+                "att_direction": str(row.get("AttDirection", "")),
+                "c1": str(row.get("C1", "")),
+                "work_code": str(row.get("WorkCode", "")),
+                "longitude": str(row.get("Longitude", "")),
+                "latitude": str(row.get("Latitude", "")),
+                "is_approved": int(row.get("IsApproved", -1)),
+                "created_date": str(row.get("CreatedDate", "")),
+                "last_modified_date": str(row.get("LastModifiedDate", "")),
+                "location_address": str(row.get("LocationAddress", "")),
+                "body_temperature": float(row.get("BodyTemperature", 0.0)),
+                "is_mask_on": int(row.get("IsMaskOn", 0)),
+                "created_at": datetime.now(),
+                "updated_at": datetime.now()
+            }
+            logs_to_insert.append(log_data)
+            
+            # Create employee record
+            user_id = log_data.get("user_id", "")
+            if user_id and user_id not in employees:
+                # Determine attendance status based on latest log
+                status = "Present" if log_data.get("c1", "").lower() == "in" else "Absent"
+                
+                employees[user_id] = {
+                    "id": str(uuid.uuid4()),
+                    "employee_id": user_id,
+                    "name": sheets_service.get_employee_name(user_id),
+                    "department": "General Department",
+                    "attendance_status": status,
+                    "site": sheets_service.get_device_location(log_data.get("device_id", "")),
+                    "mobile": sheets_service.get_employee_mobile(user_id),
+                    "email": sheets_service.get_employee_email(user_id),
+                    "created_at": datetime.now(),
+                    "updated_at": datetime.now()
+                }
+        
+        # Insert data
+        if logs_to_insert:
+            await db.attendance_logs.insert_many(logs_to_insert)
+        
+        if employees:
+            await db.employees.insert_many(list(employees.values()))
+        
+        return {
+            "message": "Data synced successfully",
+            "attendance_logs": len(logs_to_insert),
+            "employees": len(employees)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error syncing Google Sheets: {e}")
+        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
+
+@api_router.get("/sync/status")
+async def get_sync_status(current_user: dict = Depends(get_current_user)):
+    """Get sync status"""
+    attendance_logs_count = await db.attendance_logs.count_documents({})
+    employees_count = await db.employees.count_documents({})
+    
+    # Get latest sync time (approximate)
+    latest_log = await db.attendance_logs.find_one({}, sort=[("created_at", -1)])
+    last_sync = latest_log.get("created_at") if latest_log else None
+    
+    return {
+        "attendance_logs_count": attendance_logs_count,
+        "employees_count": employees_count,
+        "last_sync": last_sync,
+        "sheet_url": sheets_service.SHEET_URL
+    }
 
 # Include API routes
 app.include_router(api_router)
 
-# Serve static files and React app
-@app.get("/")
-async def serve_frontend():
-    return FileResponse('/app/frontend/build/index.html')
-
-# Serve static files
-app.mount("/static", StaticFiles(directory="/app/frontend/build/static"), name="static")
-
-# Catch-all for React Router
-@app.get("/{path:path}")
-async def serve_react_app(path: str):
-    return FileResponse('/app/frontend/build/index.html')
-
-# Startup event
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database with sample data"""
-    try:
-        # Create admin user if doesn't exist
-        admin_user = await db.users.find_one({"username": "admin"})
-        if not admin_user:
-            admin_user_data = {
-                "id": str(uuid.uuid4()),
-                "username": "admin",
-                "email": "admin@company.com",
-                "password": hash_password("admin123"),
-                "role": "admin",
-                "created_at": datetime.now()
-            }
-            await db.users.insert_one(admin_user_data)
-            logger.info("Admin user created")
+# Serve static files and handle SPA routing
+static_dir = Path(__file__).parent / "frontend" / "build"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir / "static")), name="static")
+    
+    @app.get("/{path:path}")
+    async def serve_spa(path: str):
+        """Serve React SPA for all non-API routes"""
+        if path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="API endpoint not found")
         
-        # Sync data from Google Sheets
-        logger.info("Syncing data from Google Sheets...")
-        sync_result = await sheets_service.sync_to_database()
-        logger.info(f"Sync result: {sync_result}")
-        
-        logger.info("Application startup complete")
-        
-    except Exception as e:
-        logger.error(f"Error during startup: {e}")
+        file_path = static_dir / path
+        if file_path.exists() and file_path.is_file():
+            return FileResponse(file_path)
+        else:
+            return FileResponse(static_dir / "index.html")
+else:
+    logger.warning("Frontend build directory not found. Static files will not be served.")
 
 if __name__ == "__main__":
     import uvicorn
