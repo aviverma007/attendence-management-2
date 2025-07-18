@@ -1726,7 +1726,6 @@ const EmployeesTab = ({
               <option value="">All Status</option>
               <option value="Present">Present</option>
               <option value="Absent">Absent</option>
-              <option value="Half Day">Half Day</option>
             </select>
           </div>
         )}
