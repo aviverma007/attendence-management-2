@@ -148,6 +148,85 @@ class SiteStats(BaseModel):
 class GoogleSheetsService:
     def __init__(self):
         self.spreadsheet_url = SPREADSHEET_URL
+        # Device ID to Location mapping (placeholder - will be provided later)
+        self.device_locations = {
+            "1": "Main Office",
+            "22": "Branch A",
+            "23": "Branch B",
+            "24": "Branch C",
+            "25": "Branch D",
+            "26": "Branch E",
+            "27": "Branch F",
+            "28": "Branch G",
+            "29": "Branch H",
+            "30": "Branch I",
+            "31": "Branch J",
+            "32": "Branch K",
+            "33": "Branch L",
+            "34": "Branch M"
+        }
+    
+    def calculate_attendance_status(self, logs_for_day):
+        """Calculate attendance status based on punch records and timing rules"""
+        if not logs_for_day:
+            return "Absent"
+        
+        # Sort logs by time
+        logs_for_day.sort(key=lambda x: x.get('log_date', ''))
+        
+        first_punch = logs_for_day[0]
+        last_punch = logs_for_day[-1]
+        
+        # Parse first punch time
+        first_punch_time = first_punch.get('log_date', '')
+        if not first_punch_time:
+            return "Absent"
+        
+        try:
+            # Extract time from log_date (format: "5:23:24 PM")
+            time_str = first_punch_time.strip()
+            if 'AM' in time_str or 'PM' in time_str:
+                from datetime import datetime
+                time_obj = datetime.strptime(time_str, "%I:%M:%S %p")
+                hour = time_obj.hour
+                minute = time_obj.minute
+                
+                # Check if punch is before 10:30 AM
+                if hour < 10 or (hour == 10 and minute <= 30):
+                    # Check total hours (placeholder logic)
+                    total_hours = len(logs_for_day) * 1.5  # Simplified calculation
+                    if total_hours >= 7:
+                        return "Present"
+                    elif total_hours >= 4.5:
+                        return "Half Day"
+                    else:
+                        return "Present"  # Still present but less hours
+                else:
+                    # Punch after 10:30 AM
+                    if hour >= 14:  # After 2 PM
+                        return "Half Day"
+                    else:
+                        return "Present"
+            else:
+                return "Present"  # Default if time format is unclear
+        except:
+            return "Present"  # Default if parsing fails
+    
+    def get_employee_name(self, user_id):
+        """Generate placeholder employee name"""
+        return f"Employee {user_id}"
+    
+    def get_employee_mobile(self, user_id):
+        """Generate placeholder mobile number"""
+        return f"+91-9876{user_id.zfill(6)}"
+    
+    def get_employee_email(self, user_id):
+        """Generate placeholder email"""
+        return f"employee{user_id}@company.com"
+    
+    def get_device_location(self, device_id):
+        """Get location for device ID"""
+        return self.device_locations.get(str(device_id), f"Site {device_id}")
     
     async def fetch_attendance_logs(self):
         """Fetch attendance log data from Google Sheets"""
@@ -171,6 +250,7 @@ class GoogleSheetsService:
                     "log_date": str(row.get("LogDate", "")),
                     "direction": str(row.get("Direction", "")),
                     "att_direction": str(row.get("AttDirection", "")),
+                    "c1": str(row.get("C1", "")),  # In/Out status
                     "work_code": str(row.get("WorkCode", "")),
                     "longitude": str(row.get("Longitude", "")),
                     "latitude": str(row.get("Latitude", "")),
@@ -190,6 +270,96 @@ class GoogleSheetsService:
             logger.error(f"Error fetching attendance logs from Google Sheets: {e}")
             return []
     
+    async def get_daily_attendance_stats(self, date_filter=None):
+        """Get daily attendance statistics"""
+        try:
+            # Build query
+            query = {}
+            if date_filter:
+                query["download_date"] = date_filter
+            
+            # Get all logs for the date
+            logs = await db.attendance_logs.find(query).to_list(length=None)
+            
+            # Group by user_id
+            user_logs = {}
+            for log in logs:
+                user_id = log.get("user_id")
+                if user_id not in user_logs:
+                    user_logs[user_id] = []
+                user_logs[user_id].append(log)
+            
+            # Calculate attendance status for each user
+            attendance_stats = {
+                "present": 0,
+                "absent": 0,
+                "half_day": 0,
+                "on_leave": 0,
+                "total_employees": 0
+            }
+            
+            # Get unique users from all logs (to determine total employees)
+            all_users = await db.attendance_logs.distinct("user_id")
+            attendance_stats["total_employees"] = len(all_users)
+            
+            # Calculate status for users who have logs
+            for user_id, user_logs_list in user_logs.items():
+                status = self.calculate_attendance_status(user_logs_list)
+                if status == "Present":
+                    attendance_stats["present"] += 1
+                elif status == "Half Day":
+                    attendance_stats["half_day"] += 1
+                elif status == "Absent":
+                    attendance_stats["absent"] += 1
+            
+            # Users without logs are considered absent
+            users_with_logs = len(user_logs)
+            attendance_stats["absent"] += attendance_stats["total_employees"] - users_with_logs
+            
+            return attendance_stats
+            
+        except Exception as e:
+            logger.error(f"Error calculating daily attendance stats: {e}")
+            return {
+                "present": 0,
+                "absent": 0,
+                "half_day": 0,
+                "on_leave": 0,
+                "total_employees": 0
+            }
+    
+    async def get_employee_details(self, user_id):
+        """Get detailed employee information"""
+        try:
+            # Get recent logs for this user
+            recent_logs = await db.attendance_logs.find(
+                {"user_id": user_id}
+            ).sort("download_date", -1).limit(10).to_list(length=None)
+            
+            if not recent_logs:
+                return None
+            
+            # Get latest log for basic info
+            latest_log = recent_logs[0]
+            device_id = latest_log.get("device_id", "")
+            
+            employee_details = {
+                "user_id": user_id,
+                "name": self.get_employee_name(user_id),
+                "code": user_id,
+                "department": "General Department",  # Placeholder
+                "location": self.get_device_location(device_id),
+                "mobile": self.get_employee_mobile(user_id),
+                "email": self.get_employee_email(user_id),
+                "recent_logs": recent_logs[:5]  # Last 5 logs
+            }
+            
+            return employee_details
+            
+        except Exception as e:
+            logger.error(f"Error getting employee details: {e}")
+            return None
+    
     async def fetch_data(self):
         """Fetch data from Google Sheets - Legacy method for backward compatibility"""
         try:
@@ -202,15 +372,17 @@ class GoogleSheetsService:
                 user_id = log.get("user_id", "")
                 if user_id and user_id not in employees:
                     # Determine attendance status based on latest log
-                    status = "Present" if log.get("direction", "").lower() == "in" else "Absent"
+                    status = "Present" if log.get("c1", "").lower() == "1" else "Absent"
                     
                     employees[user_id] = {
                         "id": str(uuid.uuid4()),
                         "employee_id": user_id,
-                        "name": f"Employee {user_id}",  # Default name, can be enhanced
-                        "department": "General",  # Default department
+                        "name": self.get_employee_name(user_id),
+                        "department": "General Department",
                         "attendance_status": status,
-                        "site": f"Device {log.get('device_id', '')}",
+                        "site": self.get_device_location(log.get("device_id", "")),
+                        "mobile": self.get_employee_mobile(user_id),
+                        "email": self.get_employee_email(user_id),
                         "created_at": datetime.now(),
                         "updated_at": datetime.now()
                     }
