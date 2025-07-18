@@ -10,6 +10,7 @@ import {
   ClockIcon,
   CalendarIcon,
   CheckCircleIcon,
+  XCircleIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
   BellIcon,
@@ -23,7 +24,8 @@ import {
   ShareIcon,
   AdjustmentsHorizontalIcon,
   EyeIcon,
-  EyeSlashIcon
+  EyeSlashIcon,
+  ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
 
 const API = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001/api';
