@@ -1038,11 +1038,35 @@ async def search_employee_by_code(
     code: str,
     current_user: dict = Depends(get_current_user)
 ):
-    """Search employee by code and return detailed information"""
+    """Search employee by code and return detailed information with punch details"""
     employee_details = await sheets_service.get_employee_details(code)
     
     if not employee_details:
         raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Get today's punch details
+    from datetime import datetime
+    today = datetime.now().strftime("%m/%d/%Y")
+    
+    query = {
+        "user_id": code,
+        "download_date": today
+    }
+    
+    today_logs = await db.attendance_logs.find(query).to_list(length=None)
+    
+    if today_logs:
+        punch_details = sheets_service.get_daily_punch_details(today_logs)
+        employee_details["today_punch_details"] = punch_details
+    else:
+        employee_details["today_punch_details"] = {
+            "first_in": None,
+            "last_out": None,
+            "total_punches": 0,
+            "punch_details": [],
+            "working_hours": 0.0,
+            "status": "Absent"
+        }
     
     return employee_details
 
