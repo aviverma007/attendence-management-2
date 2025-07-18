@@ -446,6 +446,7 @@ const Dashboard = () => {
         {currentView === 'attendance' && <AttendanceTab attendanceLogs={attendanceLogs} />}
         {currentView === 'analytics' && <AnalyticsTab stats={stats} attendanceLogStats={attendanceLogStats} />}
         {currentView === 'devices' && <DevicesTab attendanceLogStats={attendanceLogStats} />}
+        {currentView === 'datewise' && <DateWiseTab />}
       </main>
 
       {/* Employee Detail Modal */}
