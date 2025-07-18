@@ -617,6 +617,9 @@ function App() {
         notifications={notifications}
         realTimeData={realTimeData}
         onRefresh={refreshData}
+        onSyncGoogleSheets={syncGoogleSheets}
+        syncLoading={syncLoading}
+        syncStatus={syncStatus}
         onShowNotifications={() => setShowNotificationModal(true)}
         onShowSettings={() => setShowSettingsModal(true)}
       />
