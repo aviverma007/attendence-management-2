@@ -920,6 +920,9 @@ const DashboardHeader = ({
   notifications,
   realTimeData,
   onRefresh,
+  onSyncGoogleSheets,
+  syncLoading,
+  syncStatus,
   onShowNotifications,
   onShowSettings 
 }) => {
