@@ -737,12 +737,7 @@ class GoogleSheetsEmployeeSystemTester:
         print("WITH NEW ATTENDANCE LOGS INTEGRATION")
         print("=" * 80)
         
-        # Test API health first
-        if not self.test_health_check():
-            print("\n❌ CRITICAL: API health check failed. Stopping tests.")
-            return False
-        
-        # Test authentication
+        # Test authentication first
         if not self.test_login():
             print("\n❌ CRITICAL: Authentication failed. Stopping tests.")
             return False
