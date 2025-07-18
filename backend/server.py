@@ -972,6 +972,9 @@ async def get_employee_punch_details(
     if not logs:
         raise HTTPException(status_code=404, detail="No attendance data found for this employee on the specified date")
     
+    # Convert ObjectId to string
+    logs = convert_object_id(logs)
+    
     # Get detailed punch information
     punch_details = sheets_service.get_daily_punch_details(logs)
     
