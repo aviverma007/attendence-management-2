@@ -792,7 +792,7 @@ const StatsCard = ({ title, value, icon: Icon, color, subtitle }) => {
 };
 
 // Employees Tab Component
-const EmployeesTab = ({ employees, searchQuery, setSearchQuery, onEmployeeSelect }) => {
+const EmployeesTab = ({ employees, searchQuery, setSearchQuery, onEmployeeSelect, employeeSearchLoading, totalEmployeeCount }) => {
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = async () => {
@@ -805,6 +805,10 @@ const EmployeesTab = ({ employees, searchQuery, setSearchQuery, onEmployeeSelect
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
   };
 
   return (
