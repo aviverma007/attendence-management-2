@@ -116,6 +116,55 @@ function App() {
     recentActivity: []
   });
 
+  // Enhanced Google Sheets sync functionality
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [syncStatus, setSyncStatus] = useState({ last_sync: null, total_logs: 0, total_employees: 0 });
+
+  // Sync data from Google Sheets
+  const syncGoogleSheets = async () => {
+    try {
+      setSyncLoading(true);
+      
+      const response = await axios.post(`${API}/sync/google-sheets`);
+      
+      await fetchAllData(); // Refresh all data
+      
+      showNotification(
+        `Data synced successfully! ${response.data.employees} employees and ${response.data.attendance_logs} attendance logs imported.`,
+        'success'
+      );
+      
+      // Update sync status
+      setSyncStatus({
+        last_sync: new Date(),
+        total_logs: response.data.attendance_logs,
+        total_employees: response.data.employees
+      });
+      
+    } catch (error) {
+      console.error('Sync error:', error);
+      showNotification('Failed to sync data from Google Sheets', 'error');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  // Fetch sync status
+  useEffect(() => {
+    const fetchSyncStatus = async () => {
+      try {
+        const response = await axios.get(`${API}/sync/status`);
+        setSyncStatus(response.data);
+      } catch (error) {
+        console.error('Error fetching sync status:', error);
+      }
+    };
+    
+    if (isAuthenticated) {
+      fetchSyncStatus();
+    }
+  }, [isAuthenticated]);
+
   // Data states
   const [employees, setEmployees] = useState([]);
   const [attendanceLogs, setAttendanceLogs] = useState([]);
