@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "Create a website for Smartworld developers to show team attendance details with bar graphs, dynamic member management, and integration with attendance machine data. Features include: 9 sites, 10 teams, attendance tracking, late arrival tracking, break time management, overtime calculations, leave management, and reporting features."
+user_problem_statement: "i want to enhance and change functionalities of the application and the whole layout and i want to attach and excel sheet from the cloud for the real time data changes and i want functionality to read and write the data. i have google drive link for the excel sheet - employee records and attendance data and site information. excel to app. i want a full stack application with the login page and the dashboard should include summary, location, department, employee details, Search Bar For Employee data, and a display to show all the details of employee after selecting the correct employee"
 
 backend:
   - task: "Database Models and API Setup"
