@@ -835,19 +835,19 @@ const EmployeeCard = ({ employee, onSelect }) => {
       <div className="space-y-2">
         <div className="flex items-center text-sm text-gray-600">
           <BuildingOfficeIcon className="h-4 w-4 mr-2" />
-          {employee.department}
+          {employee.department || 'Not specified'}
         </div>
         <div className="flex items-center text-sm text-gray-600">
           <MapPinIcon className="h-4 w-4 mr-2" />
-          {employee.site}
+          {employee.site || 'Not specified'}
         </div>
         <div className="flex items-center text-sm text-gray-600">
           <PhoneIcon className="h-4 w-4 mr-2" />
-          {employee.mobile}
+          {employee.mobile || 'Not provided'}
         </div>
         <div className="flex items-center text-sm text-gray-600">
           <EnvelopeIcon className="h-4 w-4 mr-2" />
-          {employee.email}
+          {employee.email || 'Not provided'}
         </div>
       </div>
       
