@@ -505,14 +505,14 @@ class GoogleSheetsEmployeeSystemTester:
             response = self.session.get(f"{self.base_url}/sync/status")
             if response.status_code == 200:
                 data = response.json()
-                required_fields = ["total_employees", "total_attendance_logs", "last_sync", "status"]
+                required_fields = ["attendance_logs_count", "employees_count", "last_sync", "sheet_url"]
                 if all(field in data for field in required_fields):
-                    total_employees = data["total_employees"]
-                    total_logs = data["total_attendance_logs"]
-                    status = data["status"]
+                    employees_count = data["employees_count"]
+                    logs_count = data["attendance_logs_count"]
+                    sheet_url = data["sheet_url"]
                     last_sync = data["last_sync"]
                     
-                    self.log_test("Sync Status", True, f"Sync status retrieved: {total_employees} employees, {total_logs} attendance logs, Status: {status}", f"Last sync: {last_sync}")
+                    self.log_test("Sync Status", True, f"Sync status retrieved: {employees_count} employees, {logs_count} attendance logs", f"Last sync: {last_sync}, Sheet: {sheet_url[:50]}...")
                     return True
                 else:
                     self.log_test("Sync Status", False, "Missing required fields in sync status", data)
