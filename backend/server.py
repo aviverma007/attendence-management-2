@@ -1279,7 +1279,7 @@ async def sync_google_sheets(current_user: dict = Depends(get_current_user)):
         
         # Process each row
         logs_to_insert = []
-        employees = {}
+        user_logs = {}  # Group logs by user_id
         
         for index, row in df.iterrows():
             # Create attendance log
@@ -1307,19 +1307,38 @@ async def sync_google_sheets(current_user: dict = Depends(get_current_user)):
             }
             logs_to_insert.append(log_data)
             
-            # Create employee record
+            # Group logs by user_id for proper attendance calculation
             user_id = log_data.get("user_id", "")
+            if user_id:
+                if user_id not in user_logs:
+                    user_logs[user_id] = []
+                user_logs[user_id].append(log_data)
+        
+        # Calculate attendance status for each employee based on their logs
+        employees = {}
+        for user_id, logs in user_logs.items():
             if user_id and user_id not in employees:
-                # Determine attendance status based on latest log
-                status = "Present" if log_data.get("c1", "").lower() == "in" else "Absent"
+                # Get today's date for comparison
+                today = datetime.now().strftime("%m/%d/%Y")
+                
+                # Filter logs for today to calculate current attendance status
+                today_logs = [log for log in logs if log.get("download_date") == today]
+                
+                # Calculate attendance status using the proper logic
+                if today_logs:
+                    attendance_status = sheets_service.calculate_attendance_status(today_logs)
+                else:
+                    # If no logs for today, check most recent logs
+                    recent_logs = sorted(logs, key=lambda x: x.get("download_date", ""), reverse=True)[:10]
+                    attendance_status = sheets_service.calculate_attendance_status(recent_logs) if recent_logs else "Absent"
                 
                 employees[user_id] = {
                     "id": str(uuid.uuid4()),
                     "employee_id": user_id,
                     "name": sheets_service.get_employee_name(user_id),
                     "department": "General Department",
-                    "attendance_status": status,
-                    "site": sheets_service.get_device_location(log_data.get("device_id", "")),
+                    "attendance_status": attendance_status,
+                    "site": sheets_service.get_device_location(logs[0].get("device_id", "")),
                     "mobile": sheets_service.get_employee_mobile(user_id),
                     "email": sheets_service.get_employee_email(user_id),
                     "created_at": datetime.now(),
