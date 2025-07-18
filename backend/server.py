@@ -175,6 +175,91 @@ class GoogleSheetsService:
             "34": "Branch M"
         }
     
+    def get_daily_punch_details(self, logs_for_day):
+        """Get detailed punch information with proper IN/OUT times"""
+        if not logs_for_day:
+            return {
+                "first_in": None,
+                "last_out": None,
+                "total_punches": 0,
+                "punch_details": [],
+                "working_hours": 0.0,
+                "status": "Absent"
+            }
+        
+        # Sort logs by time
+        logs_for_day.sort(key=lambda x: x.get('log_date', ''))
+        
+        # Filter IN and OUT punches
+        in_punches = [log for log in logs_for_day if log.get('c1', '').lower() == 'in']
+        out_punches = [log for log in logs_for_day if log.get('c1', '').lower() == 'out']
+        
+        # Get first IN punch (login time)
+        first_in = in_punches[0] if in_punches else None
+        # Get last OUT punch (logout time)
+        last_out = out_punches[-1] if out_punches else None
+        
+        # Create punch details
+        punch_details = []
+        for log in logs_for_day:
+            punch_details.append({
+                "time": log.get('log_date', ''),
+                "type": log.get('c1', '').upper(),
+                "device_id": log.get('device_id', ''),
+                "location": self.get_device_location(log.get('device_id', ''))
+            })
+        
+        # Calculate working hours using first IN and last OUT
+        working_hours = 0.0
+        if first_in and last_out:
+            working_hours = self.calculate_working_hours_in_out(first_in, last_out)
+        elif first_in and not last_out:
+            # If no OUT punch, calculate from first IN to last punch
+            working_hours = self.calculate_working_hours([first_in, logs_for_day[-1]])
+        
+        # Calculate attendance status
+        status = self.calculate_attendance_status(logs_for_day)
+        
+        return {
+            "first_in": first_in.get('log_date', '') if first_in else None,
+            "last_out": last_out.get('log_date', '') if last_out else None,
+            "total_punches": len(logs_for_day),
+            "in_punches": len(in_punches),
+            "out_punches": len(out_punches),
+            "punch_details": punch_details,
+            "working_hours": round(working_hours, 2),
+            "status": status
+        }
+    
+    def calculate_working_hours_in_out(self, first_in, last_out):
+        """Calculate working hours between first IN and last OUT punch"""
+        try:
+            first_time_str = first_in.get('log_date', '')
+            last_time_str = last_out.get('log_date', '')
+            
+            if not first_time_str or not last_time_str:
+                return 0.0
+            
+            # Parse times
+            first_time = datetime.strptime(first_time_str.strip(), "%I:%M:%S %p")
+            last_time = datetime.strptime(last_time_str.strip(), "%I:%M:%S %p")
+            
+            # Calculate difference
+            time_diff = last_time - first_time
+            hours = time_diff.total_seconds() / 3600
+            
+            # Handle overnight shifts
+            if hours < 0:
+                hours += 24
+            
+            # Subtract standard lunch break (1 hour) if more than 5 hours
+            if hours > 5:
+                hours -= 1
+            
+            return max(0, hours)
+        except:
+            return 0.0
+
     def calculate_attendance_status(self, logs_for_day):
         """Enhanced attendance status calculation with proper time calculation"""
         if not logs_for_day:
