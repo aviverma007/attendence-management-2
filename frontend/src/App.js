@@ -1310,6 +1310,12 @@ const DateWiseTab = () => {
   const [dateWiseData, setDateWiseData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({});
+  const [viewMode, setViewMode] = useState('records'); // 'records' or 'employee-summary'
+  const [dateRange, setDateRange] = useState({
+    start: new Date().toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
+  const [employeeDateWiseData, setEmployeeDateWiseData] = useState([]);
 
   useEffect(() => {
     if (selectedDate) {
@@ -1317,12 +1323,18 @@ const DateWiseTab = () => {
     }
   }, [selectedDate]);
 
+  useEffect(() => {
+    if (viewMode === 'employee-summary') {
+      fetchEmployeeDateWiseData();
+    }
+  }, [viewMode, dateRange]);
+
   const fetchDateWiseData = async () => {
     try {
       setLoading(true);
       const dateStr = new Date(selectedDate).toLocaleDateString('en-US');
       const [dataRes, statsRes] = await Promise.all([
-        axios.get(`${API}/attendance-logs?date=${dateStr}&limit=100`),
+        axios.get(`${API}/attendance-logs?date=${dateStr}&limit=1000`),
         axios.get(`${API}/stats/daily-attendance?date=${dateStr}`)
       ]);
       
@@ -1337,6 +1349,22 @@ const DateWiseTab = () => {
     }
   };
 
+  const fetchEmployeeDateWiseData = async () => {
+    try {
+      setLoading(true);
+      const startDateStr = new Date(dateRange.start).toLocaleDateString('en-US');
+      const endDateStr = new Date(dateRange.end).toLocaleDateString('en-US');
+      
+      const response = await axios.get(`${API}/employees/date-wise?start_date=${startDateStr}&end_date=${endDateStr}`);
+      setEmployeeDateWiseData(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching employee date-wise data:', error);
+      setEmployeeDateWiseData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const selectedDateFormatted = new Date(selectedDate).toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
@@ -1344,125 +1372,284 @@ const DateWiseTab = () => {
     day: 'numeric'
   });
 
+  const getAttendanceStatusColor = (status) => {
+    switch (status) {
+      case 'Present':
+        return 'bg-green-100 text-green-800';
+      case 'Absent':
+        return 'bg-red-100 text-red-800';
+      case 'Half Day':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'On Leave':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Date-wise Attendance Data</h2>
-          <p className="text-gray-600">View attendance records for a specific date</p>
+          <p className="text-gray-600">View attendance records and employee data by date</p>
         </div>
-        <div className="flex items-center space-x-2">
-          <CalendarIcon className="h-5 w-5 text-gray-400" />
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-          />
+        <div className="flex items-center space-x-4">
+          {/* View Mode Toggle */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setViewMode('records')}
+              className={`px-3 py-1 text-sm rounded-lg ${
+                viewMode === 'records' 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Records
+            </button>
+            <button
+              onClick={() => setViewMode('employee-summary')}
+              className={`px-3 py-1 text-sm rounded-lg ${
+                viewMode === 'employee-summary' 
+                  ? 'bg-indigo-600 text-white' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Employee Summary
+            </button>
+          </div>
+          
+          {/* Date Picker */}
+          <div className="flex items-center space-x-2">
+            <CalendarIcon className="h-5 w-5 text-gray-400" />
+            {viewMode === 'records' ? (
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            ) : (
+              <div className="flex items-center space-x-2">
+                <input
+                  type="date"
+                  value={dateRange.start}
+                  onChange={(e) => setDateRange({...dateRange, start: e.target.value})}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+                <span className="text-gray-500">to</span>
+                <input
+                  type="date"
+                  value={dateRange.end}
+                  onChange={(e) => setDateRange({...dateRange, end: e.target.value})}
+                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Date Summary */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
-        <h3 className="text-xl font-bold mb-2">Summary for {selectedDateFormatted}</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold">{stats.present || 0}</p>
-            <p className="text-indigo-100 text-sm">Present</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold">{stats.absent || 0}</p>
-            <p className="text-indigo-100 text-sm">Absent</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold">{stats.half_day || 0}</p>
-            <p className="text-indigo-100 text-sm">Half Day</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold">{stats.on_leave || 0}</p>
-            <p className="text-indigo-100 text-sm">On Leave</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Attendance Records */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">Attendance Records</h3>
-            <span className="text-sm text-gray-600">
-              {dateWiseData.length} records found
-            </span>
-          </div>
-        </div>
-        
-        <div className="p-6">
-          {loading ? (
-            <div className="text-center py-8">
-              <ArrowPathIcon className="h-8 w-8 text-indigo-500 animate-spin mx-auto mb-2" />
-              <p className="text-gray-600">Loading attendance data...</p>
+      {/* Records View */}
+      {viewMode === 'records' && (
+        <>
+          {/* Date Summary */}
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
+            <h3 className="text-xl font-bold mb-2">Summary for {selectedDateFormatted}</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold">{stats.present || 0}</p>
+                <p className="text-indigo-100 text-sm">Present</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{stats.absent || 0}</p>
+                <p className="text-indigo-100 text-sm">Absent</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{stats.half_day || 0}</p>
+                <p className="text-indigo-100 text-sm">Half Day</p>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold">{stats.on_leave || 0}</p>
+                <p className="text-indigo-100 text-sm">On Leave</p>
+              </div>
             </div>
-          ) : dateWiseData.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      User ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Device
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Time
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {dateWiseData.map((record, index) => (
-                    <tr key={record.id || index} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {record.user_id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        Device {record.device_id}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {record.log_date}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          record.c1 === '1' 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                        }`}>
-                          {record.c1 === '1' ? 'Check In' : 'Check Out'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                        {record.is_approved === 1 ? 'Approved' : 'Pending'}
-                      </td>
+          </div>
+
+          {/* Attendance Records */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Attendance Records</h3>
+                <span className="text-sm text-gray-600">
+                  {dateWiseData.length} records found
+                </span>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              {loading ? (
+                <div className="text-center py-8">
+                  <ArrowPathIcon className="h-8 w-8 text-indigo-500 animate-spin mx-auto mb-2" />
+                  <p className="text-gray-600">Loading attendance data...</p>
+                </div>
+              ) : dateWiseData.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Employee ID
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Device
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Time
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Type
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {dateWiseData.map((record, index) => (
+                        <tr key={record.id || index} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {record.user_id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            Device {record.device_id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {record.log_date}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                              record.c1 === 'in' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-red-100 text-red-800'
+                            }`}>
+                              {record.c1 === 'in' ? 'Check In' : 'Check Out'}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            {record.is_approved === 1 ? 'Approved' : 'Pending'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <CalendarDaysIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No attendance records found for {selectedDateFormatted}</p>
+                  <p className="text-sm text-gray-500 mt-2">Try selecting a different date</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Employee Summary View */}
+      {viewMode === 'employee-summary' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Employee Date-wise Summary</h3>
+              <span className="text-sm text-gray-600">
+                {employeeDateWiseData.length} employee records found
+              </span>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            {loading ? (
+              <div className="text-center py-8">
+                <ArrowPathIcon className="h-8 w-8 text-indigo-500 animate-spin mx-auto mb-2" />
+                <p className="text-gray-600">Loading employee data...</p>
+              </div>
+            ) : employeeDateWiseData.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Employee ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Date
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        First Punch
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Last Punch
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Hours
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Punches
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-center py-8">
-              <CalendarDaysIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No attendance records found for {selectedDateFormatted}</p>
-              <p className="text-sm text-gray-500 mt-2">Try selecting a different date</p>
-            </div>
-          )}
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {employeeDateWiseData.map((record, index) => (
+                      <tr key={`${record.employee_id}-${record.date}-${index}`} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {record.employee_id}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {record.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {record.date}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getAttendanceStatusColor(record.attendance_status)}`}>
+                            {record.attendance_status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {record.first_punch || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {record.last_punch || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {record.total_hours ? `${record.total_hours.toFixed(1)}h` : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                          {record.punch_count}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <CalendarDaysIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No employee data found for the selected date range</p>
+                <p className="text-sm text-gray-500 mt-2">Try selecting a different date range</p>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
