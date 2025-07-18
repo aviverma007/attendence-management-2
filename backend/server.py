@@ -540,12 +540,94 @@ async def sync_google_sheets(current_user: dict = Depends(get_current_user)):
     result = await sheets_service.sync_to_database()
     return result
 
+@api_router.post("/sync/attendance-logs")
+async def sync_attendance_logs(current_user: dict = Depends(get_current_user)):
+    """Sync attendance logs from Google Sheets to database"""
+    result = await sheets_service.sync_attendance_logs_to_database()
+    return result
+
+@api_router.get("/attendance-logs")
+async def get_attendance_logs(
+    skip: int = 0,
+    limit: int = 100,
+    user_id: Optional[str] = None,
+    device_id: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get attendance logs with filtering"""
+    
+    # Build query filter
+    query = {}
+    if user_id:
+        query["user_id"] = user_id
+    if device_id:
+        query["device_id"] = device_id
+    if date_from:
+        query["download_date"] = {"$gte": date_from}
+    if date_to:
+        if "download_date" in query:
+            query["download_date"]["$lte"] = date_to
+        else:
+            query["download_date"] = {"$lte": date_to}
+    
+    # Get total count
+    total = await db.attendance_logs.count_documents(query)
+    
+    # Get logs
+    logs = await db.attendance_logs.find(query).sort("download_date", -1).skip(skip).limit(limit).to_list(length=None)
+    
+    # Convert ObjectId to string
+    logs = convert_object_id(logs)
+    
+    return {
+        "logs": logs,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+@api_router.get("/attendance-logs/stats")
+async def get_attendance_log_stats(current_user: dict = Depends(get_current_user)):
+    """Get attendance log statistics"""
+    
+    # Get total logs count
+    total_logs = await db.attendance_logs.count_documents({})
+    
+    # Get unique users count
+    unique_users = len(await db.attendance_logs.distinct("user_id"))
+    
+    # Get unique devices count
+    unique_devices = len(await db.attendance_logs.distinct("device_id"))
+    
+    # Get logs by direction
+    in_logs = await db.attendance_logs.count_documents({"direction": "in"})
+    out_logs = await db.attendance_logs.count_documents({"direction": "out"})
+    
+    # Get recent activity (last 24 hours)
+    from datetime import datetime, timedelta
+    yesterday = datetime.now() - timedelta(days=1)
+    yesterday_str = yesterday.strftime("%m/%d/%Y")
+    recent_logs = await db.attendance_logs.count_documents({"download_date": {"$gte": yesterday_str}})
+    
+    return {
+        "total_logs": total_logs,
+        "unique_users": unique_users,
+        "unique_devices": unique_devices,
+        "in_logs": in_logs,
+        "out_logs": out_logs,
+        "recent_activity": recent_logs
+    }
+
 @api_router.get("/sync/status")
 async def get_sync_status(current_user: dict = Depends(get_current_user)):
     """Get sync status and last sync time"""
     total_employees = await db.employees.count_documents({})
+    total_logs = await db.attendance_logs.count_documents({})
     return {
         "total_employees": total_employees,
+        "total_attendance_logs": total_logs,
         "last_sync": datetime.now().isoformat(),
         "status": "active"
     }
