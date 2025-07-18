@@ -432,7 +432,16 @@ const Dashboard = () => {
             selectedDate={selectedDate}
           />
         )}
-        {currentView === 'employees' && <EmployeesTab employees={filteredEmployees} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onEmployeeSelect={setSelectedEmployee} />}
+        {currentView === 'employees' && (
+          <EmployeesTab 
+            employees={filteredEmployees} 
+            searchQuery={searchQuery} 
+            setSearchQuery={handleSearch} 
+            onEmployeeSelect={setSelectedEmployee}
+            employeeSearchLoading={employeeSearchLoading}
+            totalEmployeeCount={totalEmployeeCount}
+          />
+        )}
         {currentView === 'attendance' && <AttendanceTab attendanceLogs={attendanceLogs} />}
         {currentView === 'analytics' && <AnalyticsTab stats={stats} attendanceLogStats={attendanceLogStats} />}
         {currentView === 'devices' && <DevicesTab attendanceLogStats={attendanceLogStats} />}
