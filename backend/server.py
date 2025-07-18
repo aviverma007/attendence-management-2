@@ -149,8 +149,8 @@ class GoogleSheetsService:
     def __init__(self):
         self.spreadsheet_url = SPREADSHEET_URL
     
-    async def fetch_data(self):
-        """Fetch data from Google Sheets"""
+    async def fetch_attendance_logs(self):
+        """Fetch attendance log data from Google Sheets"""
         try:
             response = requests.get(self.spreadsheet_url)
             response.raise_for_status()
@@ -160,40 +160,108 @@ class GoogleSheetsService:
             df = pd.read_csv(csv_data)
             
             # Convert to list of dictionaries
-            employees = []
+            attendance_logs = []
             for _, row in df.iterrows():
-                employee = {
+                log = {
                     "id": str(uuid.uuid4()),
-                    "employee_id": str(row.get("Employee ID", "")),
-                    "name": str(row.get("Name", "")),
-                    "department": str(row.get("Department", "")),
-                    "attendance_status": str(row.get("Attendance Status", "")),
-                    "site": str(row.get("Site", "")),
+                    "device_log_id": str(row.get("DeviceLogId", "")),
+                    "download_date": str(row.get("DownloadDate", "")),
+                    "device_id": str(row.get("DeviceId", "")),
+                    "user_id": str(row.get("UserId", "")),
+                    "log_date": str(row.get("LogDate", "")),
+                    "direction": str(row.get("Direction", "")),
+                    "att_direction": str(row.get("AttDirection", "")),
+                    "work_code": str(row.get("WorkCode", "")),
+                    "longitude": str(row.get("Longitude", "")),
+                    "latitude": str(row.get("Latitude", "")),
+                    "is_approved": int(row.get("IsApproved", -1)),
+                    "created_date": str(row.get("CreatedDate", "")),
+                    "last_modified_date": str(row.get("LastModifiedDate", "")),
+                    "location_address": str(row.get("LocationAddress", "")),
+                    "body_temperature": float(row.get("BodyTemperature", 0.0)),
+                    "is_mask_on": int(row.get("IsMaskOn", 0)),
                     "created_at": datetime.now(),
                     "updated_at": datetime.now()
                 }
-                employees.append(employee)
+                attendance_logs.append(log)
             
-            return employees
+            return attendance_logs
+        except Exception as e:
+            logger.error(f"Error fetching attendance logs from Google Sheets: {e}")
+            return []
+    
+    async def fetch_data(self):
+        """Fetch data from Google Sheets - Legacy method for backward compatibility"""
+        try:
+            # For backward compatibility, create employee-like records from attendance logs
+            attendance_logs = await self.fetch_attendance_logs()
+            
+            # Create a mapping from attendance logs to employees
+            employees = {}
+            for log in attendance_logs:
+                user_id = log.get("user_id", "")
+                if user_id and user_id not in employees:
+                    # Determine attendance status based on latest log
+                    status = "Present" if log.get("direction", "").lower() == "in" else "Absent"
+                    
+                    employees[user_id] = {
+                        "id": str(uuid.uuid4()),
+                        "employee_id": user_id,
+                        "name": f"Employee {user_id}",  # Default name, can be enhanced
+                        "department": "General",  # Default department
+                        "attendance_status": status,
+                        "site": f"Device {log.get('device_id', '')}",
+                        "created_at": datetime.now(),
+                        "updated_at": datetime.now()
+                    }
+            
+            return list(employees.values())
         except Exception as e:
             logger.error(f"Error fetching data from Google Sheets: {e}")
             return []
 
+    async def sync_attendance_logs_to_database(self):
+        """Sync attendance logs to MongoDB"""
+        try:
+            logs = await self.fetch_attendance_logs()
+            if not logs:
+                return {"status": "error", "message": "No attendance logs fetched from Google Sheets"}
+            
+            # Clear existing attendance logs
+            await db.attendance_logs.delete_many({})
+            
+            # Insert new logs
+            await db.attendance_logs.insert_many(logs)
+            
+            logger.info(f"Synced {len(logs)} attendance logs from Google Sheets")
+            return {"status": "success", "count": len(logs), "message": "Attendance logs synced successfully"}
+        except Exception as e:
+            logger.error(f"Error syncing attendance logs: {e}")
+            return {"status": "error", "message": str(e)}
+
     async def sync_to_database(self):
         """Sync Google Sheets data to MongoDB"""
         try:
+            # Sync both attendance logs and derived employee data
+            log_result = await self.sync_attendance_logs_to_database()
+            
             employees = await self.fetch_data()
             if not employees:
-                return {"status": "error", "message": "No data fetched from Google Sheets"}
+                return {"status": "error", "message": "No employee data derived from Google Sheets"}
             
-            # Clear existing data
+            # Clear existing employees
             await db.employees.delete_many({})
             
-            # Insert new data
+            # Insert new employees
             await db.employees.insert_many(employees)
             
             logger.info(f"Synced {len(employees)} employees from Google Sheets")
-            return {"status": "success", "count": len(employees), "message": "Data synced successfully"}
+            return {
+                "status": "success", 
+                "employee_count": len(employees),
+                "log_count": log_result.get("count", 0),
+                "message": "Data synced successfully"
+            }
         except Exception as e:
             logger.error(f"Error syncing data: {e}")
             return {"status": "error", "message": str(e)}
