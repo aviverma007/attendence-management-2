@@ -529,6 +529,7 @@ const OverviewTab = ({ stats, dailyStats, attendanceLogStats, syncStatus, select
   const [employeeSuggestions, setEmployeeSuggestions] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   useEffect(() => {
     if (employeeSearch.length >= 2) {
@@ -541,22 +542,31 @@ const OverviewTab = ({ stats, dailyStats, attendanceLogStats, syncStatus, select
 
   const fetchEmployeeSuggestions = async () => {
     try {
+      setSearchLoading(true);
       const response = await axios.get(`${API}/employees/suggestions?query=${employeeSearch}`);
       setEmployeeSuggestions(response.data);
       setShowSuggestions(true);
     } catch (error) {
       console.error('Error fetching employee suggestions:', error);
+      setEmployeeSuggestions([]);
+      setShowSuggestions(false);
+    } finally {
+      setSearchLoading(false);
     }
   };
 
   const handleEmployeeSelect = async (code) => {
     try {
+      setSearchLoading(true);
       const response = await axios.get(`${API}/employees/search?code=${code}`);
       setSelectedEmployee(response.data);
       setEmployeeSearch(code);
       setShowSuggestions(false);
     } catch (error) {
       console.error('Error fetching employee details:', error);
+      setSelectedEmployee(null);
+    } finally {
+      setSearchLoading(false);
     }
   };
 
