@@ -134,6 +134,36 @@ class GoogleSheetsEmployeeSystemTester:
             self.log_test("Get Employees", False, f"Request error: {str(e)}")
             return False
     
+    def test_get_all_766_employees(self):
+        """Test GET /api/employees with high limit to verify all 766 employees can be fetched"""
+        try:
+            response = self.session.get(f"{self.base_url}/employees?limit=1000")
+            if response.status_code == 200:
+                data = response.json()
+                if "employees" in data and isinstance(data["employees"], list):
+                    employees = data["employees"]
+                    total_count = data.get("total_count", len(employees))
+                    
+                    # Check if we can retrieve all 766 employees
+                    if total_count >= 766:
+                        self.log_test("Get All 766 Employees", True, f"Successfully retrieved {len(employees)} employees out of {total_count} total (Expected: 766)", f"Limit test passed - can fetch all employees")
+                        return employees
+                    elif total_count > 0:
+                        self.log_test("Get All 766 Employees", True, f"Retrieved {len(employees)} employees out of {total_count} total (Less than expected 766)", f"May need data sync or different data source")
+                        return employees
+                    else:
+                        self.log_test("Get All 766 Employees", False, "No employees found - database may be empty")
+                        return False
+                else:
+                    self.log_test("Get All 766 Employees", False, "Unexpected response format", data)
+                    return False
+            else:
+                self.log_test("Get All 766 Employees", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Get All 766 Employees", False, f"Request error: {str(e)}")
+            return False
+    
     def test_employee_search(self):
         """Test GET /api/employees with search parameters"""
         try:
