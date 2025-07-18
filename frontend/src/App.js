@@ -46,7 +46,13 @@ import {
   SignalIcon,
   WifiIcon,
   ShieldCheckIcon,
-  EllipsisVerticalIcon
+  EllipsisVerticalIcon,
+  CalendarIcon,
+  ChartColumnIcon,
+  UserGroupIcon,
+  CurrencyDollarIcon,
+  SunIcon,
+  MoonIcon
 } from '@heroicons/react/24/outline';
 import { 
   CheckCircleIcon as CheckCircleIconSolid,
@@ -57,7 +63,11 @@ import {
   UserIcon as UserIconSolid,
   BuildingOfficeIcon as BuildingOfficeIconSolid,
   MapPinIcon as MapPinIconSolid,
-  ComputerDesktopIcon as ComputerDesktopIconSolid
+  ComputerDesktopIcon as ComputerDesktopIconSolid,
+  ChartColumnIcon as ChartColumnIconSolid,
+  UserGroupIcon as UserGroupIconSolid,
+  SunIcon as SunIconSolid,
+  MoonIcon as MoonIconSolid
 } from '@heroicons/react/24/solid';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -258,6 +268,7 @@ const Login = () => {
 // Enhanced Dashboard Component
 const Dashboard = () => {
   const [stats, setStats] = useState({});
+  const [dailyStats, setDailyStats] = useState({});
   const [attendanceLogStats, setAttendanceLogStats] = useState({});
   const [employees, setEmployees] = useState([]);
   const [attendanceLogs, setAttendanceLogs] = useState([]);
@@ -267,10 +278,17 @@ const Dashboard = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [syncLoading, setSyncLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  useEffect(() => {
+    if (selectedDate) {
+      fetchDailyStats();
+    }
+  }, [selectedDate]);
 
   const fetchDashboardData = async () => {
     try {
@@ -297,11 +315,22 @@ const Dashboard = () => {
     }
   };
 
+  const fetchDailyStats = async () => {
+    try {
+      const dateStr = new Date(selectedDate).toLocaleDateString('en-US');
+      const response = await axios.get(`${API}/stats/daily-attendance?date=${dateStr}`);
+      setDailyStats(response.data);
+    } catch (error) {
+      console.error('Error fetching daily stats:', error);
+    }
+  };
+
   const handleSync = async () => {
     setSyncLoading(true);
     try {
       await axios.post(`${API}/sync/google-sheets`);
       await fetchDashboardData();
+      await fetchDailyStats();
     } catch (error) {
       console.error('Error syncing data:', error);
     } finally {
@@ -330,7 +359,12 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <Header onSync={handleSync} syncLoading={syncLoading} />
+      <Header 
+        onSync={handleSync} 
+        syncLoading={syncLoading} 
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+      />
       
       {/* Navigation */}
       <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -362,7 +396,15 @@ const Dashboard = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {currentView === 'overview' && <OverviewTab stats={stats} attendanceLogStats={attendanceLogStats} syncStatus={syncStatus} />}
+        {currentView === 'overview' && (
+          <OverviewTab 
+            stats={stats} 
+            dailyStats={dailyStats}
+            attendanceLogStats={attendanceLogStats} 
+            syncStatus={syncStatus}
+            selectedDate={selectedDate}
+          />
+        )}
         {currentView === 'employees' && <EmployeesTab employees={filteredEmployees} searchQuery={searchQuery} setSearchQuery={setSearchQuery} onEmployeeSelect={setSelectedEmployee} />}
         {currentView === 'attendance' && <AttendanceTab attendanceLogs={attendanceLogs} />}
         {currentView === 'analytics' && <AnalyticsTab stats={stats} attendanceLogStats={attendanceLogStats} />}
@@ -381,8 +423,14 @@ const Dashboard = () => {
 };
 
 // Enhanced Header Component
-const Header = ({ onSync, syncLoading }) => {
+const Header = ({ onSync, syncLoading, selectedDate, onDateChange }) => {
   const { user, logout } = useAuth();
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200">
@@ -393,13 +441,26 @@ const Header = ({ onSync, syncLoading }) => {
             <div className="h-8 w-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
               <BuildingOfficeIcon className="h-5 w-5 text-white" />
             </div>
-            <h1 className="text-xl font-bold text-gray-900">
-              Employee Management System
-            </h1>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">
+                Employee Management System
+              </h1>
+              <p className="text-sm text-gray-600">{currentDate}</p>
+            </div>
           </div>
 
-          {/* Actions */}
+          {/* Date Selector and Actions */}
           <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              <CalendarIcon className="h-5 w-5 text-gray-400" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => onDateChange(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+            
             <button
               onClick={onSync}
               disabled={syncLoading}
@@ -426,8 +487,50 @@ const Header = ({ onSync, syncLoading }) => {
   );
 };
 
-// Overview Tab Component
-const OverviewTab = ({ stats, attendanceLogStats, syncStatus }) => {
+// Enhanced Overview Tab Component
+const OverviewTab = ({ stats, dailyStats, attendanceLogStats, syncStatus, selectedDate }) => {
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [employeeSuggestions, setEmployeeSuggestions] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (employeeSearch.length >= 2) {
+      fetchEmployeeSuggestions();
+    } else {
+      setEmployeeSuggestions([]);
+      setShowSuggestions(false);
+    }
+  }, [employeeSearch]);
+
+  const fetchEmployeeSuggestions = async () => {
+    try {
+      const response = await axios.get(`${API}/employees/suggestions?query=${employeeSearch}`);
+      setEmployeeSuggestions(response.data);
+      setShowSuggestions(true);
+    } catch (error) {
+      console.error('Error fetching employee suggestions:', error);
+    }
+  };
+
+  const handleEmployeeSelect = async (code) => {
+    try {
+      const response = await axios.get(`${API}/employees/search?code=${code}`);
+      setSelectedEmployee(response.data);
+      setEmployeeSearch(code);
+      setShowSuggestions(false);
+    } catch (error) {
+      console.error('Error fetching employee details:', error);
+    }
+  };
+
+  const selectedDateFormatted = new Date(selectedDate).toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
   return (
     <div className="space-y-6">
       {/* Hero Section */}
@@ -435,8 +538,8 @@ const OverviewTab = ({ stats, attendanceLogStats, syncStatus }) => {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-3xl font-bold mb-2">Dashboard Overview</h2>
-            <p className="text-indigo-100">
-              Monitor employee attendance and system performance in real-time
+            <p className="text-indigo-100 mb-4">
+              Monitor employee attendance and system performance for {selectedDateFormatted}
             </p>
           </div>
           <div className="hidden md:block">
@@ -449,36 +552,113 @@ const OverviewTab = ({ stats, attendanceLogStats, syncStatus }) => {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* Daily Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title="Total Employees"
-          value={stats.total_employees || 0}
-          icon={UserIconSolid}
-          color="blue"
-          subtitle="Active employees"
-        />
-        <StatsCard
-          title="Present Today"
-          value={stats.present || 0}
+          title="Present"
+          value={dailyStats.present || 0}
           icon={CheckCircleIconSolid}
           color="green"
-          subtitle={`${stats.present_percentage || 0}% attendance`}
+          subtitle={`${dailyStats.present_percentage || 0}% of total`}
         />
         <StatsCard
-          title="Total Logs"
-          value={attendanceLogStats.total_logs || 0}
-          icon={ClipboardDocumentListIcon}
-          color="indigo"
-          subtitle="Attendance records"
+          title="Absent"
+          value={dailyStats.absent || 0}
+          icon={XCircleIconSolid}
+          color="red"
+          subtitle={`${dailyStats.absent_percentage || 0}% of total`}
         />
         <StatsCard
-          title="Active Devices"
-          value={attendanceLogStats.unique_devices || 0}
-          icon={ComputerDesktopIconSolid}
-          color="purple"
-          subtitle="Biometric devices"
+          title="Half Day"
+          value={dailyStats.half_day || 0}
+          icon={SunIconSolid}
+          color="yellow"
+          subtitle={`${dailyStats.half_day_percentage || 0}% of total`}
         />
+        <StatsCard
+          title="On Leave"
+          value={dailyStats.on_leave || 0}
+          icon={MoonIconSolid}
+          color="blue"
+          subtitle={`${dailyStats.on_leave_percentage || 0}% of total`}
+        />
+      </div>
+
+      {/* Attendance Visualization */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">Daily Attendance Overview</h3>
+        <AttendanceChart dailyStats={dailyStats} />
+      </div>
+
+      {/* Employee Search Section */}
+      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Employee Search</h3>
+        
+        <div className="relative">
+          <div className="relative">
+            <MagnifyingGlassIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by employee code..."
+              value={employeeSearch}
+              onChange={(e) => setEmployeeSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            />
+          </div>
+          
+          {/* Suggestions Dropdown */}
+          {showSuggestions && employeeSuggestions.length > 0 && (
+            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {employeeSuggestions.map((emp) => (
+                <button
+                  key={emp.code}
+                  onClick={() => handleEmployeeSelect(emp.code)}
+                  className="w-full text-left px-4 py-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+                >
+                  <div className="font-medium text-gray-900">{emp.code}</div>
+                  <div className="text-sm text-gray-600">{emp.name}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Selected Employee Details */}
+        {selectedEmployee && (
+          <div className="mt-6 bg-gray-50 rounded-lg p-6">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Employee Details</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Name</label>
+                  <p className="text-gray-900 font-medium">{selectedEmployee.name}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Code</label>
+                  <p className="text-gray-900 font-medium">{selectedEmployee.code}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Department</label>
+                  <p className="text-gray-900 font-medium">{selectedEmployee.department}</p>
+                </div>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Location</label>
+                  <p className="text-gray-900 font-medium">{selectedEmployee.location}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Mobile</label>
+                  <p className="text-gray-900 font-medium">{selectedEmployee.mobile}</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Email</label>
+                  <p className="text-gray-900 font-medium">{selectedEmployee.email}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Sync Status */}
@@ -507,6 +687,42 @@ const OverviewTab = ({ stats, attendanceLogStats, syncStatus }) => {
             </p>
           </div>
         </div>
+      </div>
+    </div>
+  );
+};
+
+// Attendance Chart Component
+const AttendanceChart = ({ dailyStats }) => {
+  const data = [
+    { label: 'Present', value: dailyStats.present || 0, color: 'bg-green-500' },
+    { label: 'Absent', value: dailyStats.absent || 0, color: 'bg-red-500' },
+    { label: 'Half Day', value: dailyStats.half_day || 0, color: 'bg-yellow-500' },
+    { label: 'On Leave', value: dailyStats.on_leave || 0, color: 'bg-blue-500' }
+  ];
+
+  const maxValue = Math.max(...data.map(d => d.value), 1);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {data.map((item) => (
+          <div key={item.label} className="text-center">
+            <div className="relative h-40 w-12 mx-auto mb-2">
+              <div className="absolute bottom-0 w-full bg-gray-200 rounded-t-lg" style={{ height: '100%' }}></div>
+              <div 
+                className={`absolute bottom-0 w-full ${item.color} rounded-t-lg transition-all duration-500`}
+                style={{ height: `${(item.value / maxValue) * 100}%` }}
+              ></div>
+            </div>
+            <div className="text-2xl font-bold text-gray-900">{item.value}</div>
+            <div className="text-sm text-gray-600">{item.label}</div>
+          </div>
+        ))}
+      </div>
+      
+      <div className="text-center text-sm text-gray-600">
+        Total Employees: {dailyStats.total_employees || 0}
       </div>
     </div>
   );
@@ -592,6 +808,8 @@ const EmployeeCard = ({ employee, onSelect }) => {
         return 'bg-green-100 text-green-800';
       case 'absent':
         return 'bg-red-100 text-red-800';
+      case 'half day':
+        return 'bg-yellow-100 text-yellow-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
@@ -622,6 +840,14 @@ const EmployeeCard = ({ employee, onSelect }) => {
         <div className="flex items-center text-sm text-gray-600">
           <MapPinIcon className="h-4 w-4 mr-2" />
           {employee.site}
+        </div>
+        <div className="flex items-center text-sm text-gray-600">
+          <PhoneIcon className="h-4 w-4 mr-2" />
+          {employee.mobile}
+        </div>
+        <div className="flex items-center text-sm text-gray-600">
+          <EnvelopeIcon className="h-4 w-4 mr-2" />
+          {employee.email}
         </div>
       </div>
       
@@ -700,9 +926,9 @@ const AttendanceTab = ({ attendanceLogs }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                        log.direction === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        log.c1 === '1' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
-                        {log.direction}
+                        {log.c1 === '1' ? 'In' : 'Out'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
@@ -733,9 +959,9 @@ const AttendanceLogCard = ({ log }) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
-            log.direction === 'in' ? 'bg-green-100' : 'bg-red-100'
+            log.c1 === '1' ? 'bg-green-100' : 'bg-red-100'
           }`}>
-            {log.direction === 'in' ? (
+            {log.c1 === '1' ? (
               <CheckCircleIcon className="h-6 w-6 text-green-600" />
             ) : (
               <XCircleIcon className="h-6 w-6 text-red-600" />
@@ -756,9 +982,9 @@ const AttendanceLogCard = ({ log }) => {
         <div>
           <p className="text-sm font-medium text-gray-700">Direction</p>
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-            log.direction === 'in' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            log.c1 === '1' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
           }`}>
-            {log.direction}
+            {log.c1 === '1' ? 'In' : 'Out'}
           </span>
         </div>
         <div>
@@ -1037,8 +1263,22 @@ const EmployeeDetailModal = ({ employee, onClose }) => {
             </div>
 
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-3">Status</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Contact & Status</h3>
               <div className="space-y-3">
+                <div className="flex items-center">
+                  <PhoneIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Mobile</p>
+                    <p className="font-medium text-gray-900">{employee.mobile}</p>
+                  </div>
+                </div>
+                <div className="flex items-center">
+                  <EnvelopeIcon className="h-5 w-5 text-gray-400 mr-3" />
+                  <div>
+                    <p className="text-sm text-gray-600">Email</p>
+                    <p className="font-medium text-gray-900">{employee.email}</p>
+                  </div>
+                </div>
                 <div className="flex items-center">
                   <CheckCircleIcon className="h-5 w-5 text-gray-400 mr-3" />
                   <div>
@@ -1048,15 +1288,6 @@ const EmployeeDetailModal = ({ employee, onClose }) => {
                     }`}>
                       {employee.attendance_status}
                     </span>
-                  </div>
-                </div>
-                <div className="flex items-center">
-                  <CalendarDaysIcon className="h-5 w-5 text-gray-400 mr-3" />
-                  <div>
-                    <p className="text-sm text-gray-600">Last Updated</p>
-                    <p className="font-medium text-gray-900">
-                      {new Date(employee.updated_at).toLocaleDateString()}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -1076,14 +1307,14 @@ const EmployeeDetailModal = ({ employee, onClose }) => {
                 {attendanceLogs.map(log => (
                   <div key={log.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center">
-                      {log.direction === 'in' ? (
+                      {log.c1 === '1' ? (
                         <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3" />
                       ) : (
                         <XCircleIcon className="h-5 w-5 text-red-500 mr-3" />
                       )}
                       <div>
                         <p className="text-sm font-medium text-gray-900">
-                          {log.direction === 'in' ? 'Check In' : 'Check Out'}
+                          {log.c1 === '1' ? 'Check In' : 'Check Out'}
                         </p>
                         <p className="text-xs text-gray-600">Device {log.device_id}</p>
                       </div>
