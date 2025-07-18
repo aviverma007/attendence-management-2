@@ -62,6 +62,27 @@ SPREADSHEET_URL = f"https://docs.google.com/spreadsheets/d/{SPREADSHEET_ID}/expo
 security = HTTPBearer()
 
 # Data Models
+class AttendanceLog(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    device_log_id: str
+    download_date: str
+    device_id: str
+    user_id: str
+    log_date: str
+    direction: str
+    att_direction: str
+    work_code: str
+    longitude: Optional[str] = None
+    latitude: Optional[str] = None
+    is_approved: int = -1
+    created_date: Optional[str] = None
+    last_modified_date: Optional[str] = None
+    location_address: Optional[str] = None
+    body_temperature: float = 0.0
+    is_mask_on: int = 0
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+
 class Employee(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     employee_id: str
