@@ -1001,6 +1001,9 @@ async def get_daily_attendance_summary(
     query = {"download_date": date}
     logs = await db.attendance_logs.find(query).to_list(length=None)
     
+    # Convert ObjectId to string
+    logs = convert_object_id(logs)
+    
     # Group by user_id
     user_logs = {}
     for log in logs:
