@@ -380,8 +380,15 @@ class GoogleSheetsService:
     async def sync_data_from_google_sheets(self):
         """Sync data from Google Sheets to MongoDB"""
         try:
-            # Read CSV data from Google Sheets
-            csv_url = self.SHEET_URL.replace('/edit#gid=0', '/export?format=csv&gid=0')
+            # Extract spreadsheet ID and gid from the URL
+            sheet_id = "10rKRL9trrc2QKU5OfGun1A9fpEi0oovZ"
+            gid = "959405682"
+            
+            # Construct proper CSV export URL
+            csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+            
+            logger.info(f"Syncing data from Google Sheets: {csv_url}")
+            
             response = requests.get(csv_url)
             
             if response.status_code != 200:
@@ -390,6 +397,8 @@ class GoogleSheetsService:
             # Parse CSV data
             from io import StringIO
             df = pd.read_csv(StringIO(response.text))
+            
+            logger.info(f"Loaded {len(df)} rows from Google Sheets")
             
             # Clear existing data
             await db.attendance_logs.delete_many({})
@@ -443,7 +452,19 @@ class GoogleSheetsService:
                         "updated_at": datetime.now()
                     }
             
+            # Insert attendance logs
+            if logs_to_insert:
+                await db.attendance_logs.insert_many(logs_to_insert)
+                logger.info(f"Inserted {len(logs_to_insert)} attendance logs")
+            
+            # Insert/update employees
+            if employees:
+                await db.employees.delete_many({})
+                await db.employees.insert_many(list(employees.values()))
+                logger.info(f"Inserted {len(employees)} employees")
+            
             return list(employees.values())
+            
         except Exception as e:
             logger.error(f"Error fetching data from Google Sheets: {e}")
             return []
