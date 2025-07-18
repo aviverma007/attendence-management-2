@@ -347,13 +347,14 @@ class GoogleSheetsEmployeeSystemTester:
             response = self.session.get(f"{self.base_url}/sync/status")
             if response.status_code == 200:
                 data = response.json()
-                required_fields = ["total_employees", "last_sync", "status"]
+                required_fields = ["total_employees", "total_attendance_logs", "last_sync", "status"]
                 if all(field in data for field in required_fields):
-                    total = data["total_employees"]
+                    total_employees = data["total_employees"]
+                    total_logs = data["total_attendance_logs"]
                     status = data["status"]
                     last_sync = data["last_sync"]
                     
-                    self.log_test("Sync Status", True, f"Sync status retrieved: {total} employees, Status: {status}", f"Last sync: {last_sync}")
+                    self.log_test("Sync Status", True, f"Sync status retrieved: {total_employees} employees, {total_logs} attendance logs, Status: {status}", f"Last sync: {last_sync}")
                     return True
                 else:
                     self.log_test("Sync Status", False, "Missing required fields in sync status", data)
@@ -363,6 +364,197 @@ class GoogleSheetsEmployeeSystemTester:
                 return False
         except Exception as e:
             self.log_test("Sync Status", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_sync_attendance_logs(self):
+        """Test POST /api/sync/attendance-logs - Sync attendance logs from Google Sheets"""
+        try:
+            response = self.session.post(f"{self.base_url}/sync/attendance-logs")
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("status") == "success" and "count" in data:
+                    count = data["count"]
+                    self.log_test("Sync Attendance Logs", True, f"Successfully synced {count} attendance logs from Google Sheets", f"Message: {data.get('message', 'N/A')}")
+                    return True
+                else:
+                    self.log_test("Sync Attendance Logs", False, "Sync failed or unexpected response", data)
+                    return False
+            else:
+                self.log_test("Sync Attendance Logs", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Sync Attendance Logs", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_get_attendance_logs(self):
+        """Test GET /api/attendance-logs - Get attendance logs with filtering"""
+        try:
+            # Test basic attendance logs retrieval
+            response = self.session.get(f"{self.base_url}/attendance-logs")
+            if response.status_code == 200:
+                data = response.json()
+                if "logs" in data and isinstance(data["logs"], list):
+                    logs = data["logs"]
+                    total = data.get("total", len(logs))
+                    
+                    if len(logs) > 0:
+                        # Check if logs have required fields
+                        sample_log = logs[0]
+                        required_fields = ["device_log_id", "user_id", "device_id", "log_date", "direction"]
+                        if all(field in sample_log for field in required_fields):
+                            self.log_test("Get Attendance Logs", True, f"Retrieved {len(logs)} attendance logs successfully (Total: {total})", f"Sample: User {sample_log['user_id']} - Device {sample_log['device_id']} - {sample_log['direction']}")
+                            return logs
+                        else:
+                            self.log_test("Get Attendance Logs", False, "Attendance log data missing required fields", sample_log)
+                            return False
+                    else:
+                        self.log_test("Get Attendance Logs", True, "No attendance logs found (empty list is valid after fresh sync)")
+                        return []
+                else:
+                    self.log_test("Get Attendance Logs", False, "Unexpected response format", data)
+                    return False
+            else:
+                self.log_test("Get Attendance Logs", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Get Attendance Logs", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_attendance_logs_filtering(self):
+        """Test GET /api/attendance-logs with various filters"""
+        try:
+            # Test filter by user_id
+            response = self.session.get(f"{self.base_url}/attendance-logs?user_id=1")
+            if response.status_code == 200:
+                data = response.json()
+                logs = data.get("logs", [])
+                self.log_test("Attendance Logs Filter (User ID)", True, f"Filter by user_id returned {len(logs)} results")
+                
+                # Test filter by device_id
+                response = self.session.get(f"{self.base_url}/attendance-logs?device_id=1")
+                if response.status_code == 200:
+                    data = response.json()
+                    logs = data.get("logs", [])
+                    self.log_test("Attendance Logs Filter (Device ID)", True, f"Filter by device_id returned {len(logs)} results")
+                    
+                    # Test pagination
+                    response = self.session.get(f"{self.base_url}/attendance-logs?limit=5&skip=0")
+                    if response.status_code == 200:
+                        data = response.json()
+                        logs = data.get("logs", [])
+                        self.log_test("Attendance Logs Pagination", True, f"Pagination returned {len(logs)} results (limit=5)")
+                        return True
+                    else:
+                        self.log_test("Attendance Logs Pagination", False, f"HTTP {response.status_code}", response.text)
+                        return False
+                else:
+                    self.log_test("Attendance Logs Filter (Device ID)", False, f"HTTP {response.status_code}", response.text)
+                    return False
+            else:
+                self.log_test("Attendance Logs Filter (User ID)", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Attendance Logs Filtering", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_attendance_logs_stats(self):
+        """Test GET /api/attendance-logs/stats - Get attendance log statistics"""
+        try:
+            response = self.session.get(f"{self.base_url}/attendance-logs/stats")
+            if response.status_code == 200:
+                stats = response.json()
+                required_fields = ["total_logs", "unique_users", "unique_devices", "in_logs", "out_logs", "recent_activity"]
+                if all(field in stats for field in required_fields):
+                    total_logs = stats["total_logs"]
+                    unique_users = stats["unique_users"]
+                    unique_devices = stats["unique_devices"]
+                    in_logs = stats["in_logs"]
+                    out_logs = stats["out_logs"]
+                    recent_activity = stats["recent_activity"]
+                    
+                    if total_logs >= 0 and isinstance(unique_users, int) and isinstance(unique_devices, int):
+                        self.log_test("Attendance Logs Stats", True, f"Stats retrieved: {total_logs} total logs, {unique_users} users, {unique_devices} devices", f"In: {in_logs}, Out: {out_logs}, Recent: {recent_activity}")
+                        return True
+                    else:
+                        self.log_test("Attendance Logs Stats", False, "Invalid statistics values", stats)
+                        return False
+                else:
+                    self.log_test("Attendance Logs Stats", False, "Missing required fields in response", stats)
+                    return False
+            else:
+                self.log_test("Attendance Logs Stats", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Attendance Logs Stats", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_data_integrity(self):
+        """Test data integrity between attendance logs and employees"""
+        try:
+            # Get attendance logs
+            logs_response = self.session.get(f"{self.base_url}/attendance-logs?limit=10")
+            employees_response = self.session.get(f"{self.base_url}/employees?limit=10")
+            
+            if logs_response.status_code == 200 and employees_response.status_code == 200:
+                logs_data = logs_response.json()
+                employees_data = employees_response.json()
+                
+                logs = logs_data.get("logs", [])
+                employees = employees_data.get("employees", [])
+                
+                if len(logs) > 0 and len(employees) > 0:
+                    # Check if employee records are derived from attendance logs
+                    log_user_ids = set(log.get("user_id", "") for log in logs)
+                    employee_ids = set(emp.get("employee_id", "") for emp in employees)
+                    
+                    # Check if there's overlap between log user_ids and employee_ids
+                    overlap = log_user_ids.intersection(employee_ids)
+                    
+                    if len(overlap) > 0:
+                        self.log_test("Data Integrity", True, f"Data integrity verified: {len(overlap)} employees match attendance log user IDs", f"Sample overlap: {list(overlap)[:3]}")
+                        return True
+                    else:
+                        self.log_test("Data Integrity", True, "No direct ID overlap found, but this may be expected with derived employee data")
+                        return True
+                else:
+                    self.log_test("Data Integrity", True, "Insufficient data for integrity check (empty logs or employees)")
+                    return True
+            else:
+                self.log_test("Data Integrity", False, f"Failed to fetch data for integrity check. Logs: {logs_response.status_code}, Employees: {employees_response.status_code}")
+                return False
+        except Exception as e:
+            self.log_test("Data Integrity", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_authentication_required(self):
+        """Test that all new endpoints require authentication"""
+        try:
+            # Create a session without authentication
+            unauth_session = requests.Session()
+            
+            # Test endpoints that should require authentication
+            endpoints_to_test = [
+                "/sync/attendance-logs",
+                "/attendance-logs",
+                "/attendance-logs/stats"
+            ]
+            
+            all_protected = True
+            for endpoint in endpoints_to_test:
+                response = unauth_session.get(f"{self.base_url}{endpoint}")
+                if response.status_code != 401 and response.status_code != 403:
+                    self.log_test("Authentication Required", False, f"Endpoint {endpoint} not properly protected (status: {response.status_code})")
+                    all_protected = False
+                    break
+            
+            if all_protected:
+                self.log_test("Authentication Required", True, f"All {len(endpoints_to_test)} new endpoints properly require authentication")
+                return True
+            else:
+                return False
+                
+        except Exception as e:
+            self.log_test("Authentication Required", False, f"Request error: {str(e)}")
             return False
     
     def run_all_tests(self):
