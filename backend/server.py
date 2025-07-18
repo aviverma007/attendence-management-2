@@ -90,6 +90,8 @@ class Employee(BaseModel):
     department: str
     attendance_status: str
     site: str
+    mobile: Optional[str] = None
+    email: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
