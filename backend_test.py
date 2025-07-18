@@ -762,10 +762,14 @@ class GoogleSheetsEmployeeSystemTester:
         self.test_attendance_logs_stats()
         
         print("\n" + "=" * 50)
-        print("TESTING EMPLOYEE DATA")
+        print("TESTING EMPLOYEE DATA RETRIEVAL & SEARCH (FOCUS TESTS)")
         print("=" * 50)
         employees = self.test_get_employees()
+        self.test_get_all_766_employees()
         self.test_employee_search()
+        self.test_employee_search_by_id()
+        self.test_employee_search_comprehensive()
+        self.test_employee_pagination_and_limits()
         
         print("\n" + "=" * 50)
         print("TESTING DATA INTEGRITY & SECURITY")
