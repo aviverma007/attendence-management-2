@@ -950,6 +950,89 @@ async def get_daily_attendance_stats(
     stats["date"] = date
     return stats
 
+@api_router.get("/employees/{employee_id}/punch-details")
+async def get_employee_punch_details(
+    employee_id: str,
+    date: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get detailed punch information for an employee on a specific date"""
+    if not date:
+        from datetime import datetime
+        date = datetime.now().strftime("%m/%d/%Y")
+    
+    # Get attendance logs for the specific date
+    query = {
+        "user_id": employee_id,
+        "download_date": date
+    }
+    
+    logs = await db.attendance_logs.find(query).to_list(length=None)
+    
+    if not logs:
+        raise HTTPException(status_code=404, detail="No attendance data found for this employee on the specified date")
+    
+    # Get detailed punch information
+    punch_details = sheets_service.get_daily_punch_details(logs)
+    
+    # Add employee basic info
+    employee_info = await sheets_service.get_employee_details(employee_id)
+    
+    return {
+        "employee": employee_info,
+        "date": date,
+        "punch_details": punch_details
+    }
+
+@api_router.get("/attendance/daily-summary")
+async def get_daily_attendance_summary(
+    date: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get daily attendance summary with IN/OUT punch details"""
+    if not date:
+        from datetime import datetime
+        date = datetime.now().strftime("%m/%d/%Y")
+    
+    # Get all logs for the date
+    query = {"download_date": date}
+    logs = await db.attendance_logs.find(query).to_list(length=None)
+    
+    # Group by user_id
+    user_logs = {}
+    for log in logs:
+        user_id = log.get("user_id")
+        if user_id not in user_logs:
+            user_logs[user_id] = []
+        user_logs[user_id].append(log)
+    
+    # Process each employee's attendance
+    attendance_summary = []
+    for user_id, user_logs_list in user_logs.items():
+        punch_details = sheets_service.get_daily_punch_details(user_logs_list)
+        
+        # Get employee basic info
+        employee_info = {
+            "employee_id": user_id,
+            "name": sheets_service.get_employee_name(user_id),
+            "department": "General Department",
+            "site": sheets_service.get_device_location(user_logs_list[0].get("device_id", "")) if user_logs_list else "Unknown"
+        }
+        
+        attendance_summary.append({
+            "employee": employee_info,
+            "attendance": punch_details
+        })
+    
+    # Sort by employee name
+    attendance_summary.sort(key=lambda x: x["employee"]["name"])
+    
+    return {
+        "date": date,
+        "total_employees": len(attendance_summary),
+        "attendance_summary": attendance_summary
+    }
+
 @api_router.get("/employees/search")
 async def search_employee_by_code(
     code: str,
