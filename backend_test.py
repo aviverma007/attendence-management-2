@@ -685,7 +685,122 @@ class GoogleSheetsEmployeeSystemTester:
             self.log_test("Data Integrity", False, f"Request error: {str(e)}")
             return False
     
-    def test_authentication_required(self):
+    def test_daily_attendance_stats(self):
+        """Test GET /api/stats/daily-attendance - Daily attendance statistics"""
+        try:
+            # Test with current date
+            from datetime import datetime
+            today = datetime.now().strftime("%m/%d/%Y")
+            
+            response = self.session.get(f"{self.base_url}/stats/daily-attendance?date={today}")
+            if response.status_code == 200:
+                stats = response.json()
+                required_fields = ["present", "absent", "half_day", "on_leave", "total_employees", "date"]
+                if all(field in stats for field in required_fields):
+                    present = stats["present"]
+                    absent = stats["absent"]
+                    half_day = stats["half_day"]
+                    total = stats["total_employees"]
+                    date = stats["date"]
+                    
+                    self.log_test("Daily Attendance Stats", True, f"Daily stats for {date}: {present} present, {absent} absent, {half_day} half day out of {total} total")
+                    return True
+                else:
+                    self.log_test("Daily Attendance Stats", False, "Missing required fields in response", stats)
+                    return False
+            else:
+                self.log_test("Daily Attendance Stats", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Daily Attendance Stats", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_employee_search_by_code(self):
+        """Test GET /api/employees/search - Search employee by code"""
+        try:
+            # Test with a sample employee code
+            response = self.session.get(f"{self.base_url}/employees/search?code=1")
+            if response.status_code == 200:
+                employee = response.json()
+                required_fields = ["employee_id", "name", "department", "site", "mobile", "email"]
+                if all(field in employee for field in required_fields):
+                    name = employee["name"]
+                    emp_id = employee["employee_id"]
+                    department = employee["department"]
+                    site = employee["site"]
+                    
+                    self.log_test("Employee Search by Code", True, f"Found employee: {name} (ID: {emp_id}) - {department} at {site}")
+                    return True
+                else:
+                    self.log_test("Employee Search by Code", False, "Missing required fields in employee data", employee)
+                    return False
+            elif response.status_code == 404:
+                self.log_test("Employee Search by Code", True, "Employee not found (404 is expected for non-existent codes)")
+                return True
+            else:
+                self.log_test("Employee Search by Code", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Employee Search by Code", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_employee_suggestions(self):
+        """Test GET /api/employees/suggestions - Employee autocomplete suggestions"""
+        try:
+            # Test with a sample query
+            response = self.session.get(f"{self.base_url}/employees/suggestions?query=1&limit=5")
+            if response.status_code == 200:
+                suggestions = response.json()
+                if isinstance(suggestions, list):
+                    if len(suggestions) > 0:
+                        sample = suggestions[0]
+                        required_fields = ["code", "name", "location", "department"]
+                        if all(field in sample for field in required_fields):
+                            self.log_test("Employee Suggestions", True, f"Retrieved {len(suggestions)} suggestions", f"Sample: {sample['name']} ({sample['code']}) - {sample['department']}")
+                            return True
+                        else:
+                            self.log_test("Employee Suggestions", False, "Missing required fields in suggestion", sample)
+                            return False
+                    else:
+                        self.log_test("Employee Suggestions", True, "No suggestions found (empty list is valid)")
+                        return True
+                else:
+                    self.log_test("Employee Suggestions", False, "Expected array response", suggestions)
+                    return False
+            else:
+                self.log_test("Employee Suggestions", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Employee Suggestions", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_employees_date_wise(self):
+        """Test GET /api/employees/date-wise - Date-wise employee data"""
+        try:
+            # Test with current date
+            from datetime import datetime
+            today = datetime.now().strftime("%m/%d/%Y")
+            
+            response = self.session.get(f"{self.base_url}/employees/date-wise?start_date={today}")
+            if response.status_code == 200:
+                data = response.json()
+                required_fields = ["date_range", "total_records", "data"]
+                if all(field in data for field in required_fields):
+                    total_records = data["total_records"]
+                    date_range = data["date_range"]
+                    employee_data = data["data"]
+                    
+                    self.log_test("Employees Date-wise", True, f"Retrieved {total_records} date-wise employee records", f"Date range: {date_range}")
+                    return True
+                else:
+                    self.log_test("Employees Date-wise", False, "Missing required fields in response", data)
+                    return False
+            else:
+                self.log_test("Employees Date-wise", False, f"HTTP {response.status_code}", response.text)
+                return False
+        except Exception as e:
+            self.log_test("Employees Date-wise", False, f"Request error: {str(e)}")
+            return False
         """Test that all new endpoints require authentication"""
         try:
             # Create a session without authentication
