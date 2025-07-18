@@ -261,7 +261,7 @@ class GoogleSheetsService:
             return 0.0
 
     def calculate_attendance_status(self, logs_for_day):
-        """Enhanced attendance status calculation with proper time calculation"""
+        """Simplified attendance status calculation - only Present or Absent"""
         if not logs_for_day:
             return "Absent"
         
@@ -273,7 +273,6 @@ class GoogleSheetsService:
         
         # Parse first punch time
         first_punch_time = first_punch.get('log_date', '')
-        last_punch_time = last_punch.get('log_date', '')
         
         if not first_punch_time:
             return "Absent"
@@ -290,31 +289,19 @@ class GoogleSheetsService:
                 hour = time_obj.hour
                 minute = time_obj.minute
                 
-                # Enhanced attendance logic
-                # 1. If first punch is after 2 PM, it's automatically Half Day
+                # Simplified attendance logic - only Present or Absent
+                # If first punch is after 2 PM, mark as Absent
                 if hour >= 14:  # After 2 PM
-                    return "Half Day"
+                    return "Absent"
                 
-                # 2. If first punch is before 10:30 AM (on time)
-                elif hour < 10 or (hour == 10 and minute <= 30):
-                    if total_hours >= 8:  # Full day: 8+ hours
-                        return "Present"
-                    elif total_hours >= 4:  # Half day: 4-7.9 hours
-                        return "Half Day"
-                    else:  # Less than 4 hours
-                        return "Half Day"
-                
-                # 3. If first punch is between 10:30 AM and 2 PM (late but not too late)
+                # If first punch is before 2 PM and has reasonable working hours
+                if total_hours >= 4:  # At least 4 hours of work
+                    return "Present"
                 else:
-                    if total_hours >= 6:  # Adjusted for late start
-                        return "Present"
-                    elif total_hours >= 4:
-                        return "Half Day"
-                    else:
-                        return "Half Day"
+                    return "Absent"
             else:
                 # Default for unclear time format
-                return "Present" if total_hours >= 4 else "Half Day"
+                return "Present" if total_hours >= 4 else "Absent"
         except:
             return "Present"  # Default if parsing fails
     
