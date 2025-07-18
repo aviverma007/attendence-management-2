@@ -1031,16 +1031,25 @@ async def get_attendance_logs_stats(current_user: dict = Depends(get_current_use
 async def sync_google_sheets(current_user: dict = Depends(get_current_user)):
     """Sync data from Google Sheets"""
     try:
-        # Sync attendance logs
-        csv_url = sheets_service.SHEET_URL.replace('/edit#gid=0', '/export?format=csv&gid=0')
+        # Extract spreadsheet ID and gid from the URL
+        sheet_id = "10rKRL9trrc2QKU5OfGun1A9fpEi0oovZ"
+        gid = "959405682"
+        
+        # Construct proper CSV export URL
+        csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+        
+        logger.info(f"Syncing data from Google Sheets: {csv_url}")
+        
         response = requests.get(csv_url)
         
         if response.status_code != 200:
-            raise HTTPException(status_code=400, detail="Failed to fetch data from Google Sheets")
+            raise HTTPException(status_code=400, detail=f"Failed to fetch data from Google Sheets: {response.status_code}")
         
         # Parse CSV data
         from io import StringIO
         df = pd.read_csv(StringIO(response.text))
+        
+        logger.info(f"Loaded {len(df)} rows from Google Sheets")
         
         # Clear existing data
         await db.attendance_logs.delete_many({})
@@ -1098,9 +1107,11 @@ async def sync_google_sheets(current_user: dict = Depends(get_current_user)):
         # Insert data
         if logs_to_insert:
             await db.attendance_logs.insert_many(logs_to_insert)
+            logger.info(f"Inserted {len(logs_to_insert)} attendance logs")
         
         if employees:
             await db.employees.insert_many(list(employees.values()))
+            logger.info(f"Inserted {len(employees)} employees")
         
         return {
             "message": "Data synced successfully",
