@@ -1817,5 +1817,423 @@ const EmployeeTable = ({ employees, onSelect, selectedEmployees, onSelectChange,
   );
 };
 
-// Continue with rest of components...
+// Enhanced Reports Tab Component
+const ReportsTab = ({ onExport, exportLoading, employees, attendanceLogs, stats }) => {
+  const [reportType, setReportType] = useState('attendance');
+  const [dateRange, setDateRange] = useState({
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
+  const [selectedFormat, setSelectedFormat] = useState('pdf');
+
+  const reportTypes = [
+    { id: 'attendance', label: 'Attendance Report', description: 'Employee attendance summary' },
+    { id: 'employee', label: 'Employee Report', description: 'Complete employee directory' },
+    { id: 'department', label: 'Department Report', description: 'Department-wise statistics' },
+    { id: 'performance', label: 'Performance Report', description: 'Performance analytics' }
+  ];
+
+  const handleGenerateReport = async () => {
+    try {
+      await onExport(selectedFormat, reportType);
+    } catch (error) {
+      console.error('Report generation failed:', error);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Professional Header */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 bg-gradient-to-r from-red-500 to-pink-600 rounded-xl flex items-center justify-center">
+              <DocumentArrowDownIcon className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Reports & Analytics</h2>
+              <p className="text-gray-600">Generate comprehensive reports and analytics</p>
+            </div>
+          </div>
+          <div className="hidden md:block">
+            <img 
+              src={PROFESSIONAL_IMAGES.dataVisualization}
+              alt="Data Visualization"
+              className="w-20 h-20 rounded-xl object-cover"
+            />
+          </div>
+        </div>
+
+        {/* Report Configuration */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Report Type</h3>
+            <div className="space-y-3">
+              {reportTypes.map(type => (
+                <label key={type.id} className="flex items-start space-x-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="reportType"
+                    value={type.id}
+                    checked={reportType === type.id}
+                    onChange={(e) => setReportType(e.target.value)}
+                    className="mt-1 h-4 w-4 text-red-600 focus:ring-red-500"
+                  />
+                  <div>
+                    <div className="font-medium text-gray-900">{type.label}</div>
+                    <div className="text-sm text-gray-500">{type.description}</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Configuration</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date Range
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={dateRange.start}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                  <input
+                    type="date"
+                    value={dateRange.end}
+                    onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Export Format
+                </label>
+                <select
+                  value={selectedFormat}
+                  onChange={(e) => setSelectedFormat(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                >
+                  <option value="pdf">PDF Report</option>
+                  <option value="csv">CSV Data</option>
+                  <option value="excel">Excel Spreadsheet</option>
+                </select>
+              </div>
+
+              <button
+                onClick={handleGenerateReport}
+                disabled={exportLoading}
+                className="w-full flex items-center justify-center px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                {exportLoading ? (
+                  <div className="flex items-center">
+                    <ArrowPathIcon className="h-5 w-5 mr-2 animate-spin" />
+                    Generating Report...
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <DocumentArrowDownIcon className="h-5 w-5 mr-2" />
+                    Generate Report
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Employees</h3>
+          <p className="text-3xl font-bold text-gray-900">{employees.length}</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Attendance Records</h3>
+          <p className="text-3xl font-bold text-gray-900">{attendanceLogs.length}</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Present Today</h3>
+          <p className="text-3xl font-bold text-green-600">{stats.present || 0}</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+          <h3 className="text-sm font-medium text-gray-600 mb-2">Attendance Rate</h3>
+          <p className="text-3xl font-bold text-indigo-600">{stats.present_percentage || 0}%</p>
+        </div>
+      </div>
+
+      {/* Recent Reports */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Reports</h3>
+        <div className="space-y-3">
+          {[
+            { name: 'Monthly Attendance Report', date: '2024-12-01', type: 'PDF', size: '2.5 MB' },
+            { name: 'Employee Directory', date: '2024-11-28', type: 'CSV', size: '1.2 MB' },
+            { name: 'Department Statistics', date: '2024-11-25', type: 'Excel', size: '3.1 MB' }
+          ].map((report, index) => (
+            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-red-100 rounded-lg flex items-center justify-center">
+                  <DocumentArrowDownIcon className="h-5 w-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">{report.name}</p>
+                  <p className="text-sm text-gray-600">{report.date} • {report.type} • {report.size}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button className="p-2 text-gray-400 hover:text-gray-600">
+                  <EyeIcon className="h-4 w-4" />
+                </button>
+                <button className="p-2 text-gray-400 hover:text-gray-600">
+                  <ArrowDownTrayIcon className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Enhanced Settings Tab Component
+const SettingsTab = ({ 
+  darkMode, 
+  setDarkMode, 
+  autoRefresh, 
+  setAutoRefresh, 
+  refreshInterval, 
+  setRefreshInterval,
+  dashboardLayout,
+  setDashboardLayout 
+}) => {
+  const [activeSection, setActiveSection] = useState('general');
+
+  const sections = [
+    { id: 'general', label: 'General', icon: CogIcon },
+    { id: 'appearance', label: 'Appearance', icon: EyeIcon },
+    { id: 'notifications', label: 'Notifications', icon: BellIcon },
+    { id: 'security', label: 'Security', icon: InformationCircleIcon },
+    { id: 'data', label: 'Data Management', icon: DocumentArrowDownIcon }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Professional Header */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-4">
+            <div className="h-12 w-12 bg-gradient-to-r from-gray-500 to-gray-700 rounded-xl flex items-center justify-center">
+              <CogIcon className="h-6 w-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
+              <p className="text-gray-600">Customize your dashboard experience</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Section Navigation */}
+        <div className="flex flex-wrap gap-2">
+          {sections.map(section => (
+            <button
+              key={section.id}
+              onClick={() => setActiveSection(section.id)}
+              className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                activeSection === section.id
+                  ? 'bg-gray-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <section.icon className="h-4 w-4 mr-2" />
+              {section.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Settings Content */}
+      <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+        {activeSection === 'general' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">General Settings</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Auto Refresh</label>
+                  <p className="text-sm text-gray-500">Automatically refresh data</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={autoRefresh}
+                    onChange={(e) => setAutoRefresh(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-600"></div>
+                </label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Refresh Interval
+                </label>
+                <select
+                  value={refreshInterval / 1000}
+                  onChange={(e) => setRefreshInterval(parseInt(e.target.value) * 1000)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  <option value={15}>15 seconds</option>
+                  <option value={30}>30 seconds</option>
+                  <option value={60}>1 minute</option>
+                  <option value={300}>5 minutes</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Dashboard Layout
+                </label>
+                <select
+                  value={dashboardLayout}
+                  onChange={(e) => setDashboardLayout(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  <option value="grid">Grid Layout</option>
+                  <option value="list">List Layout</option>
+                  <option value="compact">Compact Layout</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'appearance' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Appearance</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Dark Mode</label>
+                  <p className="text-sm text-gray-500">Switch to dark theme</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={darkMode}
+                    onChange={(e) => setDarkMode(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-600"></div>
+                </label>
+              </div>
+
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-medium text-gray-900 mb-2">Theme Preview</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-3 bg-white rounded border">
+                    <div className="h-2 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-2 bg-gray-100 rounded"></div>
+                  </div>
+                  <div className="p-3 bg-gray-900 rounded border">
+                    <div className="h-2 bg-gray-700 rounded mb-2"></div>
+                    <div className="h-2 bg-gray-800 rounded"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'notifications' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Browser Notifications</label>
+                  <p className="text-sm text-gray-500">Show desktop notifications</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" defaultChecked className="sr-only peer" />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-600"></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-sm font-medium text-gray-700">Email Notifications</label>
+                  <p className="text-sm text-gray-500">Receive email alerts</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-gray-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gray-600"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'security' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Security</h3>
+            
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">Account Security</h4>
+                <p className="text-sm text-blue-800 mb-3">Your account is secured with JWT authentication</p>
+                <button className="px-3 py-1 bg-blue-200 text-blue-800 rounded text-sm hover:bg-blue-300 transition-colors">
+                  View Security Log
+                </button>
+              </div>
+
+              <div className="p-4 bg-green-50 rounded-lg">
+                <h4 className="font-medium text-green-900 mb-2">Data Protection</h4>
+                <p className="text-sm text-green-800 mb-3">All data is encrypted and securely stored</p>
+                <button className="px-3 py-1 bg-green-200 text-green-800 rounded text-sm hover:bg-green-300 transition-colors">
+                  Privacy Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'data' && (
+          <div className="space-y-6">
+            <h3 className="text-lg font-semibold text-gray-900">Data Management</h3>
+            
+            <div className="space-y-4">
+              <div className="p-4 bg-yellow-50 rounded-lg">
+                <h4 className="font-medium text-yellow-900 mb-2">Data Backup</h4>
+                <p className="text-sm text-yellow-800 mb-3">Regular backups ensure data safety</p>
+                <button className="px-3 py-1 bg-yellow-200 text-yellow-800 rounded text-sm hover:bg-yellow-300 transition-colors">
+                  Create Backup
+                </button>
+              </div>
+
+              <div className="p-4 bg-red-50 rounded-lg">
+                <h4 className="font-medium text-red-900 mb-2">Cache Management</h4>
+                <p className="text-sm text-red-800 mb-3">Clear cache to improve performance</p>
+                <button className="px-3 py-1 bg-red-200 text-red-800 rounded text-sm hover:bg-red-300 transition-colors">
+                  Clear Cache
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default App;
