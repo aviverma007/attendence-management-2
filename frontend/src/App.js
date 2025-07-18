@@ -1256,6 +1256,9 @@ const OverviewTab = ({
         </div>
       </div>
 
+      {/* Enhanced Employee Search */}
+      <EnhancedEmployeeSearch onEmployeeSelect={console.log} />
+
       {/* Real-time Activity Feed */}
       <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
         <div className="flex items-center justify-between mb-4">
