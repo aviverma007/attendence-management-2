@@ -201,6 +201,73 @@ class GoogleSheetsEmployeeSystemTester:
             self.log_test("Employee Search", False, f"Request error: {str(e)}")
             return False
     
+    def test_employee_search_by_id(self):
+        """Test search functionality with employee IDs and partial IDs"""
+        try:
+            # Test search with partial employee numbers
+            test_searches = ["001", "100", "200", "1", "2", "10"]
+            
+            all_searches_passed = True
+            search_results = {}
+            
+            for search_term in test_searches:
+                response = self.session.get(f"{self.base_url}/employees?search={search_term}")
+                if response.status_code == 200:
+                    data = response.json()
+                    employees = data.get("employees", [])
+                    search_results[search_term] = len(employees)
+                    self.log_test(f"Employee Search (ID: {search_term})", True, f"Search for '{search_term}' returned {len(employees)} results")
+                else:
+                    self.log_test(f"Employee Search (ID: {search_term})", False, f"HTTP {response.status_code}", response.text)
+                    all_searches_passed = False
+            
+            if all_searches_passed:
+                total_results = sum(search_results.values())
+                self.log_test("Employee Search by ID (Overall)", True, f"All employee ID searches completed successfully", f"Total results across all searches: {total_results}")
+                return True
+            else:
+                return False
+                
+        except Exception as e:
+            self.log_test("Employee Search by ID", False, f"Request error: {str(e)}")
+            return False
+    
+    def test_employee_search_comprehensive(self):
+        """Test comprehensive search functionality across all fields"""
+        try:
+            # Test search by employee ID, name, department, and site
+            search_tests = [
+                ("Employee", "name search"),
+                ("General", "department search"),
+                ("Site", "site search"),
+                ("Branch", "location search"),
+                ("Office", "office search")
+            ]
+            
+            all_passed = True
+            total_results = 0
+            
+            for search_term, description in search_tests:
+                response = self.session.get(f"{self.base_url}/employees?search={search_term}")
+                if response.status_code == 200:
+                    data = response.json()
+                    employees = data.get("employees", [])
+                    total_results += len(employees)
+                    self.log_test(f"Comprehensive Search ({description})", True, f"Search for '{search_term}' returned {len(employees)} results")
+                else:
+                    self.log_test(f"Comprehensive Search ({description})", False, f"HTTP {response.status_code}", response.text)
+                    all_passed = False
+            
+            if all_passed:
+                self.log_test("Comprehensive Search (Overall)", True, f"All comprehensive search tests passed", f"Total results: {total_results}")
+                return True
+            else:
+                return False
+                
+        except Exception as e:
+            self.log_test("Comprehensive Search", False, f"Request error: {str(e)}")
+            return False
+    
     def test_create_employee(self):
         """Test POST /api/employees - Create new employee"""
         try:
