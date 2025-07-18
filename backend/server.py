@@ -380,7 +380,6 @@ class GoogleSheetsService:
             attendance_stats = {
                 "present": 0,
                 "absent": 0,
-                "half_day": 0,
                 "on_leave": 0,
                 "total_employees": 0
             }
@@ -394,8 +393,6 @@ class GoogleSheetsService:
                 status = self.calculate_attendance_status(user_logs_list)
                 if status == "Present":
                     attendance_stats["present"] += 1
-                elif status == "Half Day":
-                    attendance_stats["half_day"] += 1
                 elif status == "Absent":
                     attendance_stats["absent"] += 1
             
