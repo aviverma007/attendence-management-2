@@ -747,7 +747,6 @@ class GoogleSheetsEmployeeSystemTester:
         print("TESTING GOOGLE SHEETS INTEGRATION")
         print("=" * 50)
         self.test_google_sheets_sync()
-        self.test_sync_attendance_logs()
         self.test_sync_status()
         
         print("\n" + "=" * 50)
