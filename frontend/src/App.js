@@ -1369,6 +1369,138 @@ const OverviewTab = ({
           ))}
         </div>
       </div>
+
+      {/* Daily Attendance Summary with Punch Details */}
+      <DailyAttendanceSummary selectedDate={currentDate} />
+    </div>
+  );
+};
+
+// Daily Attendance Summary Component
+const DailyAttendanceSummary = ({ selectedDate }) => {
+  const [attendanceSummary, setAttendanceSummary] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchAttendanceSummary();
+  }, [selectedDate]);
+
+  const fetchAttendanceSummary = async () => {
+    if (!selectedDate) return;
+    
+    try {
+      setLoading(true);
+      const formattedDate = new Date(selectedDate).toLocaleDateString('en-US');
+      const response = await axios.get(`${API}/attendance/daily-summary?date=${formattedDate}`);
+      setAttendanceSummary(response.data.attendance_summary || []);
+    } catch (error) {
+      console.error('Error fetching attendance summary:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Daily Attendance Summary</h3>
+        <div className="animate-pulse space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="flex items-center space-x-4">
+              <div className="h-10 w-10 bg-gray-300 rounded-full"></div>
+              <div className="flex-1">
+                <div className="h-4 bg-gray-300 rounded mb-2"></div>
+                <div className="h-3 bg-gray-300 rounded w-3/4"></div>
+              </div>
+              <div className="w-20 h-8 bg-gray-300 rounded"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-200">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-lg font-semibold text-gray-900">Daily Attendance Summary</h3>
+        <div className="flex items-center space-x-2">
+          <CalendarIcon className="h-5 w-5 text-gray-400" />
+          <span className="text-sm text-gray-600">
+            {new Date(selectedDate).toLocaleDateString('en-US', { 
+              weekday: 'long', 
+              year: 'numeric', 
+              month: 'long', 
+              day: 'numeric' 
+            })}
+          </span>
+        </div>
+      </div>
+
+      {attendanceSummary.length === 0 ? (
+        <div className="text-center py-8">
+          <UserIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <p className="text-gray-500">No attendance data available for the selected date.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {attendanceSummary.slice(0, 10).map((entry, index) => (
+            <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center">
+                  <UserIcon className="h-5 w-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">{entry.employee.name}</p>
+                  <p className="text-sm text-gray-600">{entry.employee.department} • {entry.employee.site}</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-6">
+                <div className="text-center">
+                  <p className="text-xs text-gray-500">First IN</p>
+                  <p className="text-sm font-medium text-green-600">
+                    {entry.attendance.first_in || 'N/A'}
+                  </p>
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-xs text-gray-500">Last OUT</p>
+                  <p className="text-sm font-medium text-red-600">
+                    {entry.attendance.last_out || 'N/A'}
+                  </p>
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-xs text-gray-500">Working Hours</p>
+                  <p className="text-sm font-medium text-blue-600">
+                    {entry.attendance.working_hours ? `${entry.attendance.working_hours}h` : 'N/A'}
+                  </p>
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-xs text-gray-500">Status</p>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    entry.attendance.status === 'Present' ? 'bg-green-100 text-green-800' :
+                    entry.attendance.status === 'Absent' ? 'bg-red-100 text-red-800' :
+                    'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {entry.attendance.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+          
+          {attendanceSummary.length > 10 && (
+            <div className="text-center pt-4">
+              <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                View All {attendanceSummary.length} Employees
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
