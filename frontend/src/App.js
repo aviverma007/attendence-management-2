@@ -757,6 +757,20 @@ const StatsCard = ({ title, value, icon: Icon, color, subtitle }) => {
 
 // Employees Tab Component
 const EmployeesTab = ({ employees, searchQuery, setSearchQuery, onEmployeeSelect }) => {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await axios.post(`${API}/sync/google-sheets`);
+      window.location.reload(); // Simple refresh to get updated data
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -766,6 +780,14 @@ const EmployeesTab = ({ employees, searchQuery, setSearchQuery, onEmployeeSelect
           <p className="text-gray-600">Manage and view employee information</p>
         </div>
         <div className="flex items-center space-x-3">
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            <ArrowPathIcon className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh Data'}
+          </button>
           <div className="relative">
             <MagnifyingGlassIcon className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
             <input
