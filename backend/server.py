@@ -520,7 +520,7 @@ class GoogleSheetsService:
                         "id": str(uuid.uuid4()),
                         "employee_id": user_id,
                         "name": self.get_employee_name(user_id),
-                        "department": "General Department",
+                        "department": self.get_employee_department(user_id),
                         "attendance_status": attendance_status,
                         "site": self.get_device_location(logs[0].get("device_id", "")),
                         "mobile": self.get_employee_mobile(user_id),
