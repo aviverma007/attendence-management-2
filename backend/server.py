@@ -1090,7 +1090,6 @@ async def get_employee_suggestions(
     if len(query) < 2:
         return []
     
-    # Search both in employees collection and attendance_logs
     try:
         # First try to find in employees collection
         employee_query = {
@@ -1110,30 +1109,6 @@ async def get_employee_suggestions(
                 "location": emp.get("site", "Unknown Location"),
                 "department": emp.get("department", "Unknown Department")
             })
-        
-        # If not enough results, search in attendance logs
-        if len(suggestions) < limit:
-            remaining_limit = limit - len(suggestions)
-            
-            # Get distinct user IDs from attendance logs
-            pipeline = [
-                {"$match": {"user_id": {"$regex": query, "$options": "i"}}},
-                {"$group": {"_id": "$user_id", "device_id": {"$first": "$device_id"}}},
-                {"$limit": remaining_limit}
-            ]
-            
-            results = await db.attendance_logs.aggregate(pipeline).to_list(length=None)
-            
-            for result in results:
-                user_id = result["_id"]
-                # Check if already added
-                if not any(s["code"] == user_id for s in suggestions):
-                    suggestions.append({
-                        "code": user_id,
-                        "name": sheets_service.get_employee_name(user_id),
-                        "location": sheets_service.get_device_location(result.get("device_id", "")),
-                        "department": sheets_service.get_employee_department(user_id)
-                    })
         
         return suggestions
         
