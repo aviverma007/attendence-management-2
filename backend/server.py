@@ -424,7 +424,7 @@ class GoogleSheetsService:
             return {
                 "employee_id": user_id,
                 "name": self.get_employee_name(user_id),
-                "department": "General Department",
+                "department": self.get_employee_department(user_id),
                 "site": self.get_device_location(recent_logs[0].get("device_id", "")),
                 "mobile": self.get_employee_mobile(user_id),
                 "email": self.get_employee_email(user_id),
