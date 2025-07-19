@@ -1360,20 +1360,6 @@ async def get_sync_status(current_user: dict = Depends(get_current_user)):
         "sheet_url": sheets_service.SHEET_URL
     }
 
-# NEW: Sync Google Sheets data manually
-@api_router.post("/sync/google-sheets")
-async def sync_google_sheets_data(current_user: dict = Depends(get_current_user)):
-    """Manually trigger Google Sheets data sync"""
-    try:
-        employees = await sheets_service.sync_data_from_google_sheets()
-        return {
-            "message": f"Successfully synced {len(employees)} employees",
-            "employees_count": len(employees)
-        }
-    except Exception as e:
-        logger.error(f"Error syncing Google Sheets data: {e}")
-        raise HTTPException(status_code=500, detail="Failed to sync data")
-
 # Include API routes
 app.include_router(api_router)
 
