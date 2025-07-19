@@ -770,6 +770,79 @@ async def get_employees(
         "limit": limit
     }
 
+@api_router.get("/employees/suggestions")
+async def get_employee_suggestions(
+    query: str = "",
+    limit: int = 10,
+    current_user: dict = Depends(get_current_user)
+):
+    """Get employee suggestions for search autocomplete"""
+    
+    if len(query) < 2:
+        return []
+    
+    try:
+        # First try to find in employees collection
+        employee_query = {
+            "$or": [
+                {"employee_id": {"$regex": query, "$options": "i"}},
+                {"name": {"$regex": query, "$options": "i"}}
+            ]
+        }
+        
+        employees = await db.employees.find(employee_query).limit(limit).to_list(length=limit)
+        
+        suggestions = []
+        for emp in employees:
+            suggestions.append({
+                "code": emp.get("employee_id", ""),
+                "name": emp.get("name", ""),
+                "location": emp.get("site", "Unknown Location"),
+                "department": emp.get("department", "Unknown Department")
+            })
+        
+        return suggestions
+        
+    except Exception as e:
+        logger.error(f"Error in employee suggestions: {e}")
+        return []
+
+@api_router.get("/employees/search")
+async def search_employee_by_code(
+    code: str,
+    current_user: dict = Depends(get_current_user)
+):
+    """Search employee by code and return detailed information with punch details"""
+    employee_details = await sheets_service.get_employee_details(code)
+    
+    if not employee_details:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    
+    # Get today's punch details
+    from datetime import datetime
+    today = datetime.now().strftime("%m/%d/%Y")
+    
+    query = {
+        "user_id": code,
+        "download_date": today
+    }
+    
+    today_logs = await db.attendance_logs.find(query).sort("log_date", 1).to_list(length=None)
+    
+    if today_logs:
+        employee_details["today_punch_details"] = sheets_service.get_daily_punch_details(today_logs)
+    else:
+        employee_details["today_punch_details"] = {
+            "first_in": None,
+            "last_out": None,
+            "total_punches": 0,
+            "punch_details": [],
+            "working_hours": 0.0,
+            "status": "Absent"
+        }
+    
+    return employee_details
+
 @api_router.get("/employees/{employee_id}")
 async def get_employee(employee_id: str, current_user: dict = Depends(get_current_user)):
     """Get employee by ID"""
