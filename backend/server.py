@@ -326,6 +326,17 @@ class GoogleSheetsService:
         """Generate employee name"""
         return f"Employee {user_id}"
     
+    def get_employee_department(self, user_id):
+        """Generate realistic department based on user_id"""
+        departments = [
+            "Human Resources", "Information Technology", "Finance", 
+            "Marketing", "Operations", "Sales", "Customer Support",
+            "Engineering", "Quality Assurance", "Administration"
+        ]
+        # Use a hash of user_id to consistently assign departments
+        hash_value = hash(str(user_id)) % len(departments)
+        return departments[hash_value]
+    
     def get_employee_mobile(self, user_id):
         """Generate employee mobile"""
         return f"+91-{user_id[-4:]}-{user_id[-6:-4]}-{user_id[-8:-6]}"
