@@ -1243,119 +1243,17 @@ async def sync_google_sheets_data(current_user: dict = Depends(get_current_user)
         raise HTTPException(status_code=500, detail="Failed to sync data")
 
 @api_router.post("/sync/google-sheets")
-async def sync_google_sheets(current_user: dict = Depends(get_current_user)):
-    """Sync data from Google Sheets"""
+async def sync_google_sheets_data(current_user: dict = Depends(get_current_user)):
+    """Manually trigger Google Sheets data sync"""
     try:
-        # Extract spreadsheet ID and gid from the URL
-        sheet_id = "10rKRL9trrc2QKU5OfGun1A9fpEi0oovZ"
-        gid = "959405682"
-        
-        # Construct proper CSV export URL
-        csv_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
-        
-        logger.info(f"Syncing data from Google Sheets: {csv_url}")
-        
-        response = requests.get(csv_url)
-        
-        if response.status_code != 200:
-            raise HTTPException(status_code=400, detail=f"Failed to fetch data from Google Sheets: {response.status_code}")
-        
-        # Parse CSV data
-        from io import StringIO
-        df = pd.read_csv(StringIO(response.text))
-        
-        logger.info(f"Loaded {len(df)} rows from Google Sheets")
-        
-        # Clear existing data
-        await db.attendance_logs.delete_many({})
-        await db.employees.delete_many({})
-        
-        # Process each row
-        logs_to_insert = []
-        user_logs = {}  # Group logs by user_id
-        
-        for index, row in df.iterrows():
-            # Create attendance log
-            log_data = {
-                "id": str(uuid.uuid4()),
-                "device_log_id": str(row.get("DeviceLogId", "")),
-                "download_date": str(row.get("DownloadDate", "")),
-                "device_id": str(row.get("DeviceId", "")),
-                "user_id": str(row.get("UserId", "")),
-                "log_date": str(row.get("LogDate", "")),
-                "direction": str(row.get("Direction", "")),
-                "att_direction": str(row.get("AttDirection", "")),
-                "c1": str(row.get("C1", "")),
-                "work_code": str(row.get("WorkCode", "")),
-                "longitude": str(row.get("Longitude", "")),
-                "latitude": str(row.get("Latitude", "")),
-                "is_approved": int(row.get("IsApproved", -1)),
-                "created_date": str(row.get("CreatedDate", "")),
-                "last_modified_date": str(row.get("LastModifiedDate", "")),
-                "location_address": str(row.get("LocationAddress", "")),
-                "body_temperature": float(row.get("BodyTemperature", 0.0)),
-                "is_mask_on": int(row.get("IsMaskOn", 0)),
-                "created_at": datetime.now(),
-                "updated_at": datetime.now()
-            }
-            logs_to_insert.append(log_data)
-            
-            # Group logs by user_id for proper attendance calculation
-            user_id = log_data.get("user_id", "")
-            if user_id:
-                if user_id not in user_logs:
-                    user_logs[user_id] = []
-                user_logs[user_id].append(log_data)
-        
-        # Calculate attendance status for each employee based on their logs
-        employees = {}
-        for user_id, logs in user_logs.items():
-            if user_id and user_id not in employees:
-                # Get today's date for comparison
-                today = datetime.now().strftime("%m/%d/%Y")
-                
-                # Filter logs for today to calculate current attendance status
-                today_logs = [log for log in logs if log.get("download_date") == today]
-                
-                # Calculate attendance status using the proper logic
-                if today_logs:
-                    attendance_status = sheets_service.calculate_attendance_status(today_logs)
-                else:
-                    # If no logs for today, check most recent logs
-                    recent_logs = sorted(logs, key=lambda x: x.get("download_date", ""), reverse=True)[:10]
-                    attendance_status = sheets_service.calculate_attendance_status(recent_logs) if recent_logs else "Absent"
-                
-                employees[user_id] = {
-                    "id": str(uuid.uuid4()),
-                    "employee_id": user_id,
-                    "name": sheets_service.get_employee_name(user_id),
-                    "department": "General Department",
-                    "attendance_status": attendance_status,
-                    "site": sheets_service.get_device_location(logs[0].get("device_id", "")),
-                    "mobile": sheets_service.get_employee_mobile(user_id),
-                    "email": sheets_service.get_employee_email(user_id),
-                    "created_at": datetime.now(),
-                    "updated_at": datetime.now()
-                }
-        
-        # Insert data
-        if logs_to_insert:
-            await db.attendance_logs.insert_many(logs_to_insert)
-            logger.info(f"Inserted {len(logs_to_insert)} attendance logs")
-        
-        if employees:
-            await db.employees.insert_many(list(employees.values()))
-            logger.info(f"Inserted {len(employees)} employees")
-        
+        employees = await sheets_service.sync_data_from_google_sheets()
         return {
-            "message": "Data synced successfully",
-            "attendance_logs": len(logs_to_insert),
-            "employees": len(employees)
+            "message": f"Successfully synced {len(employees)} employees",
+            "employees_count": len(employees)
         }
-        
     except Exception as e:
-        logger.error(f"Error syncing Google Sheets: {e}")
-        raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
+        logger.error(f"Error syncing Google Sheets data: {e}")
+        raise HTTPException(status_code=500, detail="Failed to sync data")
 
 @api_router.get("/sync/status")
 async def get_sync_status(current_user: dict = Depends(get_current_user)):
