@@ -579,7 +579,7 @@ class GoogleSheetsService:
                         employee_date_data[key] = {
                             "employee_id": user_id,
                             "name": self.get_employee_name(user_id),
-                            "department": "General Department",
+                            "department": self.get_employee_department(user_id),
                             "site": self.get_device_location(log.get("device_id", "")),
                             "date": date,
                             "all_punches": [],
