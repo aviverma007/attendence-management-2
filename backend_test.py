@@ -10,7 +10,7 @@ from datetime import date, datetime
 import sys
 
 # Backend URL from environment
-BACKEND_URL = "https://f47f3c09-8ffd-4676-9915-03c4182c9ade.preview.emergentagent.com/api"
+BACKEND_URL = "https://702aacde-3c1c-464e-8ccd-c56714e5a2e7.preview.emergentagent.com/api"
 
 class GoogleSheetsEmployeeSystemTester:
     def __init__(self):
