@@ -1132,7 +1132,7 @@ async def get_employee_suggestions(
                         "code": user_id,
                         "name": sheets_service.get_employee_name(user_id),
                         "location": sheets_service.get_device_location(result.get("device_id", "")),
-                        "department": "General Department"
+                        "department": sheets_service.get_employee_department(user_id)
                     })
         
         return suggestions
