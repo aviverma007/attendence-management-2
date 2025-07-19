@@ -1228,6 +1228,20 @@ async def get_attendance_logs_stats(current_user: dict = Depends(get_current_use
         "device_locations": sheets_service.device_locations
     }
 
+# NEW: Sync Google Sheets data manually
+@api_router.post("/sync/google-sheets-manual")
+async def sync_google_sheets_data(current_user: dict = Depends(get_current_user)):
+    """Manually trigger Google Sheets data sync"""
+    try:
+        employees = await sheets_service.sync_data_from_google_sheets()
+        return {
+            "message": f"Successfully synced {len(employees)} employees",
+            "employees_count": len(employees)
+        }
+    except Exception as e:
+        logger.error(f"Error syncing Google Sheets data: {e}")
+        raise HTTPException(status_code=500, detail="Failed to sync data")
+
 @api_router.post("/sync/google-sheets")
 async def sync_google_sheets(current_user: dict = Depends(get_current_user)):
     """Sync data from Google Sheets"""
