@@ -1883,7 +1883,6 @@ const EnhancedEmployeeSearch = ({ onEmployeeSelect }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [employeeDetails, setEmployeeDetails] = useState(null);
-  const [searchResults, setSearchResults] = useState([]);
   const [searchType, setSearchType] = useState('code'); // 'code' or 'name'
   const searchInputRef = useRef(null);
 
@@ -1896,7 +1895,7 @@ const EnhancedEmployeeSearch = ({ onEmployeeSelect }) => {
           const response = await axios.get(`${API}/employees/suggestions`, {
             params: { query: searchQuery, limit: 10 }
           });
-          setSuggestions(response.data);
+          setSuggestions(response.data || []);
           setShowSuggestions(true);
         } catch (error) {
           console.error('Error fetching suggestions:', error);
