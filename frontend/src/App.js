@@ -948,14 +948,18 @@ const DashboardHeader = ({
   const unreadNotifications = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
+    <header className={`shadow-sm border-b transition-colors duration-300 ${
+      darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+    }`}>
       <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Left side */}
           <div className="flex items-center">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              className={`p-2 rounded-lg transition-colors ${
+                darkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <Bars3Icon className="h-6 w-6" />
             </button>
@@ -965,19 +969,29 @@ const DashboardHeader = ({
                 <UserGroupIcon className="h-5 w-5 text-white" />
               </div>
               <div className="ml-3">
-                <h1 className="text-lg font-semibold text-gray-900">Employee Management</h1>
-                <p className="text-sm text-gray-500">Professional Dashboard</p>
+                <h1 className={`text-lg font-semibold transition-colors ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>Employee Management</h1>
+                <p className={`text-sm transition-colors ${
+                  darkMode ? 'text-gray-400' : 'text-gray-500'
+                }`}>Professional Dashboard</p>
               </div>
             </div>
           </div>
 
           {/* Center - Real-time Status */}
           <div className="hidden md:flex items-center space-x-4">
-            <div className="flex items-center bg-green-50 px-3 py-1 rounded-full">
+            <div className={`flex items-center px-3 py-1 rounded-full ${
+              darkMode ? 'bg-green-900' : 'bg-green-50'
+            }`}>
               <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-              <span className="text-sm text-green-700">Live</span>
+              <span className={`text-sm ${
+                darkMode ? 'text-green-400' : 'text-green-700'
+              }`}>Live</span>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className={`text-sm ${
+              darkMode ? 'text-gray-400' : 'text-gray-500'
+            }`}>
               Last updated: {realTimeData.lastUpdate.toLocaleTimeString()}
             </div>
             {syncStatus.last_sync && (
