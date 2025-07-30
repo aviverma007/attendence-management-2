@@ -779,11 +779,10 @@ class GoogleSheetsEmployeeSystemTester:
     def test_employees_date_wise(self):
         """Test GET /api/employees/date-wise - Date-wise employee data"""
         try:
-            # Test with current date
-            from datetime import datetime
-            today = datetime.now().strftime("%m/%d/%Y")
+            # Test with a date that exists in the data
+            test_date = "7/1/2025"
             
-            response = self.session.get(f"{self.base_url}/employees/date-wise?start_date={today}")
+            response = self.session.get(f"{self.base_url}/employees/date-wise?start_date={test_date}")
             if response.status_code == 200:
                 data = response.json()
                 required_fields = ["date_range", "total_records", "data"]
