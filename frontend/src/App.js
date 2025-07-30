@@ -602,7 +602,7 @@ function App() {
 
   // Main dashboard
   return (
-    <div className={`min-h-screen bg-gray-50 ${darkMode ? 'dark' : ''}`}>
+    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'dark bg-gray-900' : 'bg-gray-50'}`}>
       {/* Notification System */}
       <NotificationSystem notifications={notifications} />
       
@@ -635,7 +635,7 @@ function App() {
         
         {/* Main Content */}
         <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-0'}`}>
-          <div className="p-6">
+          <div className={`p-6 ${darkMode ? 'text-white' : ''}`}>
             {/* Tab Content */}
             {activeTab === 'overview' && (
               <OverviewTab 
