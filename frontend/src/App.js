@@ -995,7 +995,9 @@ const DashboardHeader = ({
               Last updated: {realTimeData.lastUpdate.toLocaleTimeString()}
             </div>
             {syncStatus.last_sync && (
-              <div className="text-sm text-gray-500">
+              <div className={`text-sm ${
+                darkMode ? 'text-gray-400' : 'text-gray-500'
+              }`}>
                 Sync: {new Date(syncStatus.last_sync).toLocaleTimeString()}
               </div>
             )}
@@ -1020,7 +1022,9 @@ const DashboardHeader = ({
             {/* Refresh Button */}
             <button
               onClick={onRefresh}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className={`p-2 rounded-lg transition-colors ${
+                darkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <ArrowPathIcon className="h-5 w-5" />
             </button>
@@ -1028,7 +1032,9 @@ const DashboardHeader = ({
             {/* Dark Mode Toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className={`p-2 rounded-lg transition-colors ${
+                darkMode ? 'text-yellow-400 hover:text-yellow-300 hover:bg-gray-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
             >
               {darkMode ? (
                 <SunIcon className="h-5 w-5" />
@@ -1040,7 +1046,9 @@ const DashboardHeader = ({
             {/* Notifications */}
             <button
               onClick={onShowNotifications}
-              className="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className={`relative p-2 rounded-lg transition-colors ${
+                darkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <BellIcon className="h-5 w-5" />
               {unreadNotifications > 0 && (
@@ -1053,7 +1061,9 @@ const DashboardHeader = ({
             {/* Settings */}
             <button
               onClick={onShowSettings}
-              className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className={`p-2 rounded-lg transition-colors ${
+                darkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+              }`}
             >
               <CogIcon className="h-5 w-5" />
             </button>
@@ -1062,21 +1072,29 @@ const DashboardHeader = ({
             <div className="relative">
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center space-x-2 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className={`flex items-center space-x-2 p-2 rounded-lg transition-colors ${
+                  darkMode ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
               >
                 <div className="h-8 w-8 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center">
                   <UserIcon className="h-5 w-5 text-white" />
                 </div>
-                <span className="text-sm font-medium text-gray-900">{user?.username}</span>
+                <span className={`text-sm font-medium ${
+                  darkMode ? 'text-white' : 'text-gray-900'
+                }`}>{user?.username}</span>
                 <ChevronDownIcon className="h-4 w-4" />
               </button>
 
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                <div className={`absolute right-0 mt-2 w-48 rounded-lg shadow-lg border z-50 ${
+                  darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+                }`}>
                   <div className="py-1">
-                    <div className="px-4 py-2 text-sm text-gray-700 border-b border-gray-100">
+                    <div className={`px-4 py-2 text-sm border-b ${
+                      darkMode ? 'text-gray-300 border-gray-700' : 'text-gray-700 border-gray-100'
+                    }`}>
                       <p className="font-medium">{user?.username}</p>
-                      <p className="text-gray-500">{user?.email}</p>
+                      <p className={darkMode ? 'text-gray-400' : 'text-gray-500'}>{user?.email}</p>
                     </div>
                     <button
                       onClick={onLogout}
