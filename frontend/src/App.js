@@ -769,14 +769,32 @@ function App() {
   );
 }
 
-// Enhanced Login Screen Component
+// Enhanced Login Screen Component with Conditional Login Button
 const LoginScreen = ({ onLogin, loginLoading }) => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showLoginButton, setShowLoginButton] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  // Check if credentials are correct to show the login button
+  const checkCredentials = (username, password) => {
+    // Check for correct credentials (admin/admin123)
+    return username.toLowerCase() === 'admin' && password === 'admin123';
+  };
+
+  const handleUsernameChange = (e) => {
+    const newUsername = e.target.value;
+    setCredentials({...credentials, username: newUsername});
+    setShowLoginButton(checkCredentials(newUsername, credentials.password));
+  };
+
+  const handlePasswordChange = (e) => {
+    const newPassword = e.target.value;
+    setCredentials({...credentials, password: newPassword});
+    setShowLoginButton(checkCredentials(credentials.username, newPassword));
+  };
+
+  const handleLoginClick = async () => {
     setError('');
     
     if (!credentials.username || !credentials.password) {
@@ -816,7 +834,7 @@ const LoginScreen = ({ onLogin, loginLoading }) => {
         <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6">
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
-            <p className="text-gray-600">Sign in to your account</p>
+            <p className="text-gray-600">Enter your credentials to continue</p>
           </div>
 
           {error && (
@@ -826,7 +844,7 @@ const LoginScreen = ({ onLogin, loginLoading }) => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-6">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
                 Username
@@ -839,7 +857,7 @@ const LoginScreen = ({ onLogin, loginLoading }) => {
                   id="username"
                   type="text"
                   value={credentials.username}
-                  onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+                  onChange={handleUsernameChange}
                   className="appearance-none relative block w-full px-3 py-3 pl-10 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="Enter your username"
                   required
@@ -861,7 +879,7 @@ const LoginScreen = ({ onLogin, loginLoading }) => {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={credentials.password}
-                  onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+                  onChange={handlePasswordChange}
                   className="appearance-none relative block w-full px-3 py-3 pl-10 pr-10 border border-gray-300 rounded-lg placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="Enter your password"
                   required
@@ -876,26 +894,26 @@ const LoginScreen = ({ onLogin, loginLoading }) => {
               </div>
             </div>
 
-            <div>
-              <button
-                type="submit"
-                disabled={loginLoading}
-                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                {loginLoading ? (
-                  <div className="flex items-center">
-                    <ArrowPathIcon className="h-5 w-5 animate-spin mr-2" />
-                    Signing in...
-                  </div>
-                ) : (
-                  <div className="flex items-center">
-                    <CheckCircleIcon className="h-5 w-5 mr-2" />
-                    Sign in
-                  </div>
-                )}
-              </button>
-            </div>
-          </form>
+            {/* Conditional Login Button as Hyperlink */}
+            {showLoginButton && (
+              <div className="text-center">
+                <button
+                  onClick={handleLoginClick}
+                  disabled={loginLoading}
+                  className="text-indigo-600 hover:text-indigo-800 font-semibold text-lg underline decoration-2 underline-offset-4 hover:decoration-indigo-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loginLoading ? (
+                    <div className="flex items-center justify-center">
+                      <ArrowPathIcon className="h-5 w-5 animate-spin mr-2" />
+                      Accessing Dashboard...
+                    </div>
+                  ) : (
+                    'Click here to access Dashboard'
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="text-center">
             <p className="text-sm text-gray-600">
