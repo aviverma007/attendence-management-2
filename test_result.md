@@ -219,13 +219,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Database Models and API Setup"
-    - "Sample Data Generation"
-    - "Attendance Statistics API"
-    - "Employee Management API"
-    - "Dashboard UI with Attendance Overview"
-    - "Team Attendance Visualization"
-    - "Employee Management Interface"
+    - "Google Sheets Integration and Data Sync"
+    - "Employee Management API with Enhanced Features"
+    - "Statistics and Analytics APIs"
   stuck_tasks: []
   test_all: true
   test_priority: "high_first"
