@@ -894,21 +894,24 @@ const LoginScreen = ({ onLogin, loginLoading }) => {
               </div>
             </div>
 
-            {/* Conditional Login Button as Hyperlink */}
+            {/* Conditional Login Button */}
             {showLoginButton && (
-              <div className="text-center">
+              <div>
                 <button
                   onClick={handleLoginClick}
                   disabled={loginLoading}
-                  className="text-indigo-600 hover:text-indigo-800 font-semibold text-lg underline decoration-2 underline-offset-4 hover:decoration-indigo-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-105"
                 >
                   {loginLoading ? (
-                    <div className="flex items-center justify-center">
+                    <div className="flex items-center">
                       <ArrowPathIcon className="h-5 w-5 animate-spin mr-2" />
                       Accessing Dashboard...
                     </div>
                   ) : (
-                    'Click here to access Dashboard'
+                    <div className="flex items-center">
+                      <CheckCircleIcon className="h-5 w-5 mr-2" />
+                      Access Dashboard
+                    </div>
                   )}
                 </button>
               </div>
