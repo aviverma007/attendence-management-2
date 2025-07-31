@@ -237,7 +237,7 @@ function App() {
   const initializeApp = async () => {
     try {
       // Initialize any required services
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 200));
       setLoading(false);
     } catch (error) {
       console.error('App initialization error:', error);
